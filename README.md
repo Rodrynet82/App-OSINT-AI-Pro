@@ -58,9 +58,23 @@ LinkedIn • GitHub
 git clone https://github.com/Rodrynet82/App-Osint-Pro.git
 cd App-Osint-Pro/public
 npx serve .
+```
+⚠️ Licencia y Uso Ético
+Solo para fines educativos y autorizados. No usar contra sistemas sin permiso explícito.
 
+🤝 Contribuciones
+¡PRs bienvenidos! Especialmente:
 
+Nuevas herramientas OSINT.
 
+Integraciones API reales.
+
+Optimización rendimiento globo.gl.
+
+Traducciones i18n.
+
+Desarrollado por Rodrigo Cabada
+LinkedIn • GitHub
 
 
 
