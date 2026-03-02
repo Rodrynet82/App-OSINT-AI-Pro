@@ -2,7 +2,7 @@
 
 Plataforma web de **inteligencia de amenazas OSINT** con IA avanzada. Dashboard profesional con **globo 3D interactivo** (Globe.gl), 19 pruebas automatizadas, reportes PDF/JSON y suite de herramientas expandida.
 
-[![Demo en Vercel] (https://app-osint-ai-pro.vercel.app)
+Demo en Vercel (https://app-osint-ai-pro.vercel.app)
 
 ## ✨ **Características destacadas**
 
@@ -55,7 +55,7 @@ LinkedIn • GitHub
 ## 🚀 **Instalación y Demo**
 
 ```bash
-git clone https://github.com/Rodrynet82/App-Osint-Pro.git
+git clone https://github.com/Rodrynet82/App-OSINT-AI-Pro.git
 cd App-Osint-Pro/public
 npx serve .
 ```
