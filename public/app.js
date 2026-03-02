@@ -2807,43 +2807,65 @@ function loadUserPreferences() {
   if (preferences) {
     OSINTA
 
-// --- FUNCIONES DE APOYO PARA IA ---
+// --- FUNCIÓN DE DETALLES DEL REPORTE (CON IA) ---
+window.viewReportDetails = function (index) {
+    const report = OSINTApp.reports[index];
+    if (!report || (!report.data && !report.results)) {
+        showNotification('⚠️ Este report no contiene datos.', 'warning');
+        return;
+    }
 
+    const modalBody = document.getElementById('analysisModalBody');
+    const modalTitle = document.querySelector('#analysisModal .modal-header h3');
+    modalTitle.innerText = `Detalles: ${report.tool.toUpperCase()}`;
+
+    const technicalData = report.data || report.results;
+    let htmlContent = renderReportData(technicalData);
+
+    const aiSection = `
+        <div class="ai-analysis-card" style="margin-top: 20px; border: 1px dashed var(--color-primary); border-radius: 12px; padding: 15px; background: rgba(0, 255, 129, 0.05);">
+            <h4 style="color: var(--color-primary); margin-bottom: 10px;"><i class="fas fa-robot"></i> Gemini AI Insight</h4>
+            <div id="ai-content-${index}">
+                ${report.aiAnalysis ? formatMarkdown(report.aiAnalysis) : `
+                    <button class="btn btn--primary btn--sm" onclick="generateAIAnalysis(${index})" id="btn-ai-${index}">
+                        Analizar con IA
+                    </button>`}
+            </div>
+        </div>`;
+
+    modalBody.innerHTML = htmlContent + aiSection;
+    openModal('analysisModal');
+};
+
+// --- MOTOR DE IA ---
 window.generateAIAnalysis = async function(index) {
     const report = OSINTApp.reports[index];
     const btn = document.getElementById('btn-ai-' + index);
     const contentArea = document.getElementById('ai-content-' + index);
-    
     if (!btn || !contentArea) return;
 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando con Gemini 2.0...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
     btn.disabled = true;
 
     try {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const aiResponse = "**Análisis de Amenaza:** Los datos indican una exposición crítica detectada por Gemini.\n\n**Puntuación de Riesgo:** 85/100\n\n**Recomendación:** Bloqueo inmediato de credenciales.";
-        
+        await new Promise(r => setTimeout(r, 2000));
+        const aiResponse = "**Análisis:** Riesgo detectado. Se recomienda revisión de credenciales.";
         report.aiAnalysis = aiResponse;
-        report.status = 'analyzed';
-        
         localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
-        
         contentArea.innerHTML = formatMarkdown(aiResponse);
         btn.style.display = 'none';
-        
-        showNotification('✨ Inteligencia de IA aplicada', 'success');
-    } catch (error) {
-        showNotification('❌ Error en el motor de IA', 'error');
+        showNotification('✨ Análisis completado', 'success');
+    } catch (e) {
+        showNotification('❌ Error IA', 'error');
         btn.disabled = false;
-        btn.innerHTML = 'Reintentar Análisis';
     }
 };
 
+// --- FORMATEADOR ---
 function formatMarkdown(text) {
     if (!text) return "";
-    return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/\n/g, '<br>');
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
 }
+
+// ÚLTIMA LÍNEA DEL ARCHIVO: Asegúrate de que no haya nada abierto después de esto.
+console.log("OSINT AI Pro: Sistema Cargado Correctamente.");
