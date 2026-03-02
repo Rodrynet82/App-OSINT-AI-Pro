@@ -2841,29 +2841,46 @@ window.viewReportDetails = function (index) {
   if (typeof openModal === 'function') openModal('analysisModal');
 };
 
-window.generateAIAnalysis = async function(index) {
+window.viewReportDetails = function (index) {
   const report = OSINTApp.reports[index];
-  const btn = document.getElementById('btn-ai-' + index);
-  const contentArea = document.getElementById('ai-content-' + index);
-  if (!btn || !contentArea) return;
-
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando Gemini...';
-  btn.disabled = true;
-
-  try {
-    await new Promise(r => setTimeout(r, 1500));
-    const response = "**Veredicto Forense:** Se han identificado indicadores de exposición moderada. Los datos coinciden con filtraciones de terceros conocidas. \n\n**Recomendación:** Activar MFA y revisar logs de acceso.";
-    
-    report.aiAnalysis = response;
-    localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
-    
-    contentArea.innerHTML = formatMarkdown(response);
-    btn.style.display = 'none';
-    if (typeof showNotification === 'function') showNotification('✨ IA: Análisis completado', 'success');
-  } catch (e) {
-    btn.disabled = false;
-    btn.innerHTML = 'Reintentar';
+  if (!report) {
+    showNotification('⚠️ No se pudo encontrar el objeto del reporte.', 'error');
+    return;
   }
+
+  const modalBody = document.getElementById('analysisModalBody');
+  const modalTitle = document.querySelector('#analysisModal .modal-header h3');
+  
+  // SOLUCIÓN AL ERROR: Verificamos si existe 'tool' antes de usar toUpperCase()
+  const toolName = report.tool ? report.tool.toUpperCase() : "ANÁLISIS GENERAL";
+  modalTitle.innerText = `Detalles: ${toolName}`;
+
+  // Verificamos dónde están los datos (pueden estar en .data o .results)
+  const technicalData = report.data || report.results || report.details || {};
+  
+  let htmlContent = "";
+  if (typeof renderReportData === 'function') {
+      htmlContent = renderReportData(technicalData);
+  } else {
+      // Fallback si no encuentra la función de renderizado
+      htmlContent = `<pre class="result-code">${JSON.stringify(technicalData, null, 2)}</pre>`;
+  }
+
+  const aiSection = `
+    <div class="ai-analysis-card" style="margin-top: 20px; border: 1px dashed #00ff81; border-radius: 12px; padding: 15px; background: rgba(0, 255, 129, 0.05);">
+        <h4 style="color: #00ff81; margin-bottom: 10px;"><i class="fas fa-robot"></i> Gemini AI Insight</h4>
+        <div id="ai-content-${index}">
+            ${report.aiAnalysis ? formatMarkdown(report.aiAnalysis) : `
+                <div style="text-align: center;">
+                    <button class="btn btn--primary btn--sm" onclick="generateAIAnalysis(${index})" id="btn-ai-${index}">
+                        <i class="fas fa-wand-magic-sparkles"></i> Analizar con IA
+                    </button>
+                </div>`}
+        </div>
+    </div>`;
+
+  modalBody.innerHTML = htmlContent + aiSection;
+  if (typeof openModal === 'function') openModal('analysisModal');
 };
 
 function formatMarkdown(text) {
