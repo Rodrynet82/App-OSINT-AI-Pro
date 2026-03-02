@@ -2836,37 +2836,3 @@ window.viewReportDetails = function (index) {
     modalBody.innerHTML = htmlContent + aiSection;
     openModal('analysisModal');
 };
-
-// --- MOTOR DE IA ---
-window.generateAIAnalysis = async function(index) {
-    const report = OSINTApp.reports[index];
-    const btn = document.getElementById('btn-ai-' + index);
-    const contentArea = document.getElementById('ai-content-' + index);
-    if (!btn || !contentArea) return;
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
-    btn.disabled = true;
-
-    try {
-        await new Promise(r => setTimeout(r, 2000));
-        const aiResponse = "**Análisis:** Riesgo detectado. Se recomienda revisión de credenciales.";
-        report.aiAnalysis = aiResponse;
-        localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
-        contentArea.innerHTML = formatMarkdown(aiResponse);
-        btn.style.display = 'none';
-        showNotification('✨ Análisis completado', 'success');
-    } catch (e) {
-        showNotification('❌ Error IA', 'error');
-        btn.disabled = false;
-    }
-};
-
-// --- FORMATEADOR ---
-function formatMarkdown(text) {
-    if (!text) return "";
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-}
-
-// ÚLTIMA LÍNEA DEL ARCHIVO: Asegúrate de que no haya nada abierto después de esto.
-console.log("OSINT AI Pro: Sistema Cargado Correctamente."
-);
