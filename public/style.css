@@ -4077,3 +4077,26 @@ pre code {
     grid-template-columns: 1fr;
   }
 }
+
+/* Corrección para modales que se desbordan */
+.modal-content {
+    max-height: 90vh; /* Máximo 90% de la altura de la pantalla */
+    overflow-y: auto;  /* Si el contenido es largo, permite scroll interno */
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Scrollbar estilo Cyberpunk para el modal */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--color-primary);
+    border-radius: 10px;
+}
