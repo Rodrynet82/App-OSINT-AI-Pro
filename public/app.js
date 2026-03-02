@@ -2385,24 +2385,26 @@ window.exportReport = async function (index, format) {
   if (!report) return;
 
   if (format === 'json') {
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    // Si exportas a JSON, ahora incluirá el campo aiAnalysis si existe
+    const dataToExport = { ...report, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
     downloadFile(blob, `report-${report.id}.json`);
     showNotification(`✅ Reporte JSON exportado`, 'success');
   } else if (format === 'pdf') {
-    showNotification('📄 Generando PDF premium...', 'info');
+    showNotification('📄 Generando PDF con Inteligencia Forense...', 'info');
 
-    // Primero visualizamos el reporte para que el modal esté poblado
+    // IMPORTANTE: Forzamos la vista de detalles para que el modal se actualice con la IA
     viewReportDetails(index);
 
-    // Esperar un momento a que el modal se renderice
     setTimeout(async () => {
       const element = document.getElementById('analysisModalBody');
       if (!element) return;
 
       try {
         const { jsPDF } = window.jspdf;
+        // Capturamos el modal incluyendo la nueva sección de IA
         const canvas = await html2canvas(element, {
-          backgroundColor: '#0f172a',
+          backgroundColor: '#0a0a0f', // Color de tu fondo oscuro
           scale: 2,
           logging: false,
           useCORS: true
@@ -2410,19 +2412,17 @@ window.exportReport = async function (index, format) {
 
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const imgProps = pdf.getImageProperties(imgData);
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`osint_report_${report.id}.pdf`);
+        pdf.save(`OSINT_AI_PRO_REPORT_${report.id}.pdf`);
         showNotification('✅ PDF generado con éxito', 'success');
       } catch (err) {
         console.error('Error generando PDF:', err);
-        showNotification('❌ Error al generar PDF. Usando impresión nativa.', 'error');
-        window.print();
+        showNotification('❌ Error al generar PDF.', 'error');
       }
-    }, 800);
+    }, 1000); // Damos un poco más de tiempo para que la IA se renderice bien
   }
 };
 
@@ -2805,6 +2805,47 @@ function startRealTimeUpdates() {
 function loadUserPreferences() {
   const preferences = localStorage.getItem('user-preferences');
   if (preferences) {
-    OSINTApp.settings = JSON.parse(preferences);
-  }
-}
+    OSINTA
+
+// Función para conectar con Gemini (Simulada por ahora hasta conectar el socket del Notebook)
+window.generateAIAnalysis = async function(index) {
+    const report = OSINTApp.reports[index];
+    const btn = document.getElementById(`btn-ai-${index}`);
+    const contentArea = document.getElementById(`ai-content-${index}`);
+    
+    if (!btn || !contentArea) return;
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando con Gemini 2.0...';
+    btn.disabled = true;
+
+    try {
+        // Simulamos la respuesta que obtuvimos en el Notebook de Jupyter
+        // En el próximo paso haremos que esto sea una llamada real
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Simula espera
+        
+        const aiResponse = `**Análisis de Amenaza:** Los datos de ${report.tool} indican una exposición crítica. Se han detectado patrones de comportamiento sospechosos vinculados a IoCs conocidos.\n\n**Puntuación de Riesgo:** 85/100\n\n**Recomendación:** Bloqueo inmediato de credenciales y rotación de claves API.`;
+        
+        report.aiAnalysis = aiResponse;
+        report.status = 'analyzed';
+        
+        // Guardamos permanentemente en el navegador
+        localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
+        
+        // Actualizamos la interfaz sin cerrar el modal
+        contentArea.innerHTML = formatMarkdown(aiResponse);
+        btn.style.display = 'none'; // Quitamos el botón ya que ya se analizó
+        
+        showNotification('✨ Inteligencia de IA aplicada al reporte', 'success');
+    } catch (error) {
+        showNotification('❌ Error en el motor de IA', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Reintentar Análisis';
+    }
+};
+
+// Conversor de Markdown a HTML (Para que las negritas y listas de Gemini se vean bien)
+function formatMarkdown(text) {
+    if (!text) return "";
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--color-primary)">$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1<
