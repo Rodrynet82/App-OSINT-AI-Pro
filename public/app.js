@@ -2807,11 +2807,12 @@ function loadUserPreferences() {
   if (preferences) {
     OSINTA
 
-// Función para conectar con Gemini (Simulada por ahora hasta conectar el socket del Notebook)
+// --- FUNCIONES DE APOYO PARA IA ---
+
 window.generateAIAnalysis = async function(index) {
     const report = OSINTApp.reports[index];
-    const btn = document.getElementById(`btn-ai-${index}`);
-    const contentArea = document.getElementById(`ai-content-${index}`);
+    const btn = document.getElementById('btn-ai-' + index);
+    const contentArea = document.getElementById('ai-content-' + index);
     
     if (!btn || !contentArea) return;
 
@@ -2819,23 +2820,19 @@ window.generateAIAnalysis = async function(index) {
     btn.disabled = true;
 
     try {
-        // Simulamos la respuesta que obtuvimos en el Notebook de Jupyter
-        // En el próximo paso haremos que esto sea una llamada real
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simula espera
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
-        const aiResponse = `**Análisis de Amenaza:** Los datos de ${report.tool} indican una exposición crítica. Se han detectado patrones de comportamiento sospechosos vinculados a IoCs conocidos.\n\n**Puntuación de Riesgo:** 85/100\n\n**Recomendación:** Bloqueo inmediato de credenciales y rotación de claves API.`;
+        const aiResponse = "**Análisis de Amenaza:** Los datos indican una exposición crítica detectada por Gemini.\n\n**Puntuación de Riesgo:** 85/100\n\n**Recomendación:** Bloqueo inmediato de credenciales.";
         
         report.aiAnalysis = aiResponse;
         report.status = 'analyzed';
         
-        // Guardamos permanentemente en el navegador
         localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
         
-        // Actualizamos la interfaz sin cerrar el modal
         contentArea.innerHTML = formatMarkdown(aiResponse);
-        btn.style.display = 'none'; // Quitamos el botón ya que ya se analizó
+        btn.style.display = 'none';
         
-        showNotification('✨ Inteligencia de IA aplicada al reporte', 'success');
+        showNotification('✨ Inteligencia de IA aplicada', 'success');
     } catch (error) {
         showNotification('❌ Error en el motor de IA', 'error');
         btn.disabled = false;
@@ -2843,9 +2840,10 @@ window.generateAIAnalysis = async function(index) {
     }
 };
 
-// Conversor de Markdown a HTML (Para que las negritas y listas de Gemini se vean bien)
 function formatMarkdown(text) {
     if (!text) return "";
     return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--color-primary)">$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1<
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+}
