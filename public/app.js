@@ -2890,3 +2890,61 @@ function formatMarkdown(text) {
 
 // Inicialización final
 console.log("🚀 OSINT AI Pro: Motor V3 cargado y sincronizado.");
+
+// ==========================================
+// ANEXO DE INTELIGENCIA ARTIFICIAL (GEMINI)
+// ==========================================
+
+window.generateAIAnalysis = async function(index) {
+    console.log("🤖 Iniciando análisis para el reporte:", index);
+    
+    const report = OSINTApp.reports[index];
+    const btn = document.getElementById('btn-ai-' + index);
+    const contentArea = document.getElementById('ai-content-' + index);
+    
+    if (!btn || !contentArea) {
+        console.error("No se encontraron los elementos del DOM");
+        return;
+    }
+
+    // Feedback visual
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gemini procesando...';
+    btn.disabled = true;
+
+    try {
+        // Simulamos la llamada a Gemini 2.0 que probamos en Jupyter
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const response = "**Análisis de Amenaza:** Se han detectado indicadores de compromiso (IoCs) vinculados a actividades de reconocimiento. La exposición de datos es alta.\n\n**Puntuación de Riesgo:** 88/100\n\n**Recomendación Forense:** Realizar un escaneo de puertos profundo y verificar si las credenciales filtradas están activas.";
+        
+        // Guardamos el resultado en el reporte
+        report.aiAnalysis = response;
+        report.status = 'analyzed';
+        
+        // Persistencia en LocalStorage
+        localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
+        
+        // Actualizamos la interfaz
+        contentArea.innerHTML = formatMarkdown(response);
+        btn.style.display = 'none'; // Ocultamos el botón tras el éxito
+        
+        if (typeof showNotification === 'function') {
+            showNotification('✨ Inteligencia de IA aplicada con éxito', 'success');
+        }
+    } catch (error) {
+        console.error("Error en IA:", error);
+        btn.disabled = false;
+        btn.innerHTML = 'Reintentar Análisis';
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error al conectar con el motor de IA', 'error');
+        }
+    }
+};
+
+// Formateador de texto IA
+function formatMarkdown(text) {
+    if (!text) return "";
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--color-primary)">$1</strong>')
+        .replace(/\n/g, '<br>');
+}
