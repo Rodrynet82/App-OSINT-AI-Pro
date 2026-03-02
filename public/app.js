@@ -2868,4 +2868,5 @@ function formatMarkdown(text) {
 }
 
 // ÚLTIMA LÍNEA DEL ARCHIVO: Asegúrate de que no haya nada abierto después de esto.
-console.log("OSINT AI Pro: Sistema Cargado Correctamente.");
+console.log("OSINT AI Pro: Sistema Cargado Correctamente."
+);
