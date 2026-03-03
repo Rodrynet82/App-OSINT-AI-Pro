@@ -2444,120 +2444,135 @@ function closeAllModals() {
   document.getElementById('modalOverlay')?.classList.add('hidden');
 }
 
-// MONITORING SECTION
+// ==========================================
+// MONITORING SECTION - VIGÍA IA REFORZADO
+// ==========================================
+
 function initializeMonitoringSection() {
   const addTargetBtn = document.getElementById('addTargetBtn');
-
-  // Lista local de monitoreo en localStorage
+  
+  // Sincronizamos con el estado global de la App
   if (!localStorage.getItem('osint_monitoring')) {
-    localStorage.setItem('osint_monitoring', JSON.stringify([
-      { id: 1, target: 'midominio.com', type: 'Dominio', status: 'Activo', lastCheck: 'hace 5 min' },
-      { id: 2, target: '192.168.1.100', type: 'IP', status: 'Pausado', lastCheck: 'hace 2 horas' }
-    ]));
+    OSINTApp.monitoring = [
+      { id: 1, name: 'empresa-target.com', status: 'active', threatLevel: 'success', lastCheck: 'hace 5 min', aiInsight: '✅ Gemini: Perímetro seguro.' },
+      { id: 2, name: '8.8.8.8', status: 'active', threatLevel: 'low', lastCheck: 'hace 2 horas', aiInsight: 'Análisis de puertos completado.' }
+    ];
+    localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
   }
 
   if (addTargetBtn) {
-    addTargetBtn.addEventListener('click', () => {
-      const domain = prompt('Introduce el dominio o IP a monitorear continuamente:');
-      if (domain) {
-        const current = JSON.parse(localStorage.getItem('osint_monitoring') || '[]');
-        current.push({
-          id: Date.now(),
-          target: domain,
-          type: domain.includes('.') && !domain.match(/\d+\.\d+\.\d+\.\d+/) ? 'Dominio' : 'IP',
-          status: 'Activo',
-          lastCheck: 'Recién añadido'
-        });
-        localStorage.setItem('osint_monitoring', JSON.stringify(current));
-        showNotification(`✅ Objetivo ${domain} añadido al monitoreo`, 'success');
-        renderMonitoringList();
-      }
-    });
-  }
-
-  // Exportar datos
-  const exportMonitoringData = document.getElementById('exportMonitoringData');
-  if (exportMonitoringData) {
-    exportMonitoringData.addEventListener('click', () => {
-      const data = localStorage.getItem('osint_monitoring');
-      const blob = new Blob([data], { type: 'application/json' });
-      downloadFile(blob, `monitoring-data-${Date.now()}.json`);
-      showNotification('✅ Datos de monitoreo exportados en JSON', 'success');
-    });
+    // Usamos el ID de tu HTML original
+    addTargetBtn.onclick = () => showAddMonitorModal();
   }
 
   renderMonitoringList();
-
-  // Iniciar simulación de alertas (cada 45 segundos)
-  setInterval(() => {
-    const alertsList = document.getElementById('recentAlertsList');
-    if (!alertsList || document.getElementById('monitoring-section').classList.contains('hidden')) return;
-
-    const activeTargets = JSON.parse(localStorage.getItem('osint_monitoring') || '[]').filter(t => t.status === 'Activo');
-    if (activeTargets.length === 0) return;
-
-    const randomTarget = activeTargets[Math.floor(Math.random() * activeTargets.length)];
-    const alertHtml = `
-            <div style="background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; padding: 10px; margin-bottom: 10px; font-size: 13px;">
-                <strong style="color: #ef4444;">Alerta crítica: ${randomTarget.target}</strong>
-                <p style="color: #cbd5e1; margin-top: 5px;">Se detectó un cambio inusual en los registros DNS / Puertos.</p>
-                <small style="color: #94a3b8;">${new Date().toLocaleTimeString()}</small>
-            </div>
-        `;
-    alertsList.insertAdjacentHTML('afterbegin', alertHtml);
-
-    if (alertsList.children.length > 5) {
-      alertsList.removeChild(alertsList.lastChild);
-    }
-  }, 45000);
+  
+  // Inicializar gráficos si existen en el DOM
+  if (typeof initializeMonitoringCharts === 'function') {
+    initializeMonitoringCharts();
+  }
 }
 
-function renderMonitoringList() {
-  const list = document.getElementById('monitoringTargetsList');
-  if (!list) return;
+window.showAddMonitorModal = function() {
+  const target = prompt('Introduce el dominio o IP a monitorear continuamente:');
+  if (!target) return;
 
-  const targets = JSON.parse(localStorage.getItem('osint_monitoring') || '[]');
-  if (targets.length === 0) {
-    list.innerHTML = '<p style="color: #94a3b8;">No hay objetivos monitoreados. Añade uno desde el Panel de Control.</p>';
+  const newTarget = {
+    id: Date.now(),
+    name: target,
+    status: 'scanning',
+    threatLevel: 'low',
+    lastCheck: new Date().toLocaleTimeString(),
+    aiInsight: '🤖 Gemini está iniciando el rastreo de superficie...'
+  };
+
+  OSINTApp.monitoring.push(newTarget);
+  localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
+  showNotification(`✅ Objetivo ${target} añadido al Vigía IA`, 'success');
+  renderMonitoringList();
+  
+  // Lanzamos la simulación de la IA
+  simulateAIWatcher(newTarget.id);
+};
+
+function renderMonitoringList() {
+  const listContainer = document.getElementById('monitoringTargetsList');
+  if (!listContainer) return;
+
+  if (OSINTApp.monitoring.length === 0) {
+    listContainer.innerHTML = '<div class="empty-state"><p>No hay objetivos activos.</p></div>';
     return;
   }
 
-  list.innerHTML = targets.map((t, idx) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #1a1a2e; padding: 15px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #334155;">
-            <div>
-                <strong style="color: #f8fafc; font-size: 15px;">${t.target}</strong>
-                <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
-                    Tipo: ${t.type} | Último chequeo: ${t.lastCheck}
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <span style="background: ${t.status === 'Activo' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}; color: ${t.status === 'Activo' ? '#10b981' : '#f59e0b'}; padding: 4px 10px; border-radius: 12px; font-size: 11px;">
-                    ${t.status}
-                </span>
-                <button onclick="toggleMonitoringStatus(${idx})" class="btn btn--outline btn--sm" style="padding: 4px 8px;"><i class="fas ${t.status === 'Activo' ? 'fa-pause' : 'fa-play'}"></i></button>
-                <button onclick="deleteMonitoringTarget(${idx})" class="btn btn--outline btn--sm" style="padding: 4px 8px; color:#ef4444; border-color:#ef4444;"><i class="fas fa-trash"></i></button>
-            </div>
-        </div>
-    `).join('');
+  listContainer.innerHTML = OSINTApp.monitoring.map(t => `
+    <div class="target-item status-${t.status}" style="border-left: 4px solid ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}; margin-bottom: 12px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong><i class="fas fa-microchip"></i> ${t.name}</strong>
+        <span class="badge" style="color: ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}">${t.status.toUpperCase()}</span>
+      </div>
+      <p style="font-size: 0.8rem; color: #888; margin: 5px 0;"><i class="fas fa-clock"></i> Chequeo: ${t.lastCheck}</p>
+      <div style="background: rgba(0,255,129,0.05); padding: 8px; border-radius: 4px; margin-top: 5px;">
+        <p style="font-size: 0.85rem; color: #00ff81; font-style: italic; margin:0;">
+          <i class="fas fa-robot"></i> ${t.aiInsight}
+        </p>
+      </div>
+      <div style="text-align: right; margin-top: 10px;">
+        <button onclick="deleteMonitor(${t.id})" style="background:none; border:none; color:#ff4646; cursor:pointer; font-size: 0.8rem;">
+          <i class="fas fa-trash-alt"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  `).join('');
 }
 
-window.toggleMonitoringStatus = function (index) {
-  const targets = JSON.parse(localStorage.getItem('osint_monitoring') || '[]');
-  if (targets[index]) {
-    targets[index].status = targets[index].status === 'Activo' ? 'Pausado' : 'Activo';
-    localStorage.setItem('osint_monitoring', JSON.stringify(targets));
+function simulateAIWatcher(id) {
+  setTimeout(() => {
+    const idx = OSINTApp.monitoring.findIndex(t => t.id === id);
+    if (idx === -1) return;
+
+    const target = OSINTApp.monitoring[idx];
+    target.status = 'active';
+    
+    // Simulación de detección de amenaza (30% de probabilidad)
+    const isThreat = Math.random() > 0.7;
+    target.threatLevel = isThreat ? 'error' : 'success';
+    target.aiInsight = isThreat 
+      ? "⚠️ ALERTA IA: Detectada actividad de fuerza bruta en puerto SSH." 
+      : "✅ Gemini IA: El activo se mantiene estable. No se hallaron fugas en DBs.";
+    target.lastCheck = new Date().toLocaleTimeString();
+
+    localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
     renderMonitoringList();
-  }
+    
+    if(isThreat) {
+      updateRecentAlerts(target);
+      showNotification(`🚨 Amenaza detectada en ${target.name}`, 'error');
+    }
+  }, 4000);
+}
+
+function updateRecentAlerts(target) {
+  const alertsList = document.getElementById('recentAlertsList');
+  if(!alertsList) return;
+  
+  const alertHtml = `
+    <div class="alert-item error" style="border-bottom: 1px solid rgba(255,70,70,0.1); padding: 8px 0;">
+      <small style="color: #ff4646;">[${target.lastCheck}]</small> 
+      <span style="font-size: 0.85rem;">🚨 <strong>CRÍTICO:</strong> ${target.name} - Vulnerabilidad detectada por IA.</span>
+    </div>`;
+  alertsList.innerHTML = alertHtml + alertsList.innerHTML;
+}
+
+window.deleteMonitor = function(id) {
+  OSINTApp.monitoring = OSINTApp.monitoring.filter(t => t.id !== id);
+  localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
+  renderMonitoringList();
+  showNotification('Objetivo eliminado del monitoreo', 'info');
 };
 
-window.deleteMonitoringTarget = function (index) {
-  if (confirm('¿Eliminar objetivo del monitoreo?')) {
-    const targets = JSON.parse(localStorage.getItem('osint_monitoring') || '[]');
-    targets.splice(index, 1);
-    localStorage.setItem('osint_monitoring', JSON.stringify(targets));
-    renderMonitoringList();
-  }
-};
+// ==========================================
+// END MONITORING SECTION
+// ==========================================
 
 // SETTINGS SECTION
 function initializeSettingsSection() {
