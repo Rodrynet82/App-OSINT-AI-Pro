@@ -566,60 +566,58 @@
                 <!-- Monitoring Section -->
                 <section id="monitoring-section" class="content-section">
                     <div class="monitoring-header">
-                        <h2>Monitoreo Continuo</h2>
-                        <p>Sistema de monitoreo en tiempo real con alertas automáticas</p>
-                    </div>
+                        <h2><i class="fas fa-eye text-primary"></i> Monitoreo Continuo</h2>
+                        <p>Sistema de inteligencia activa con veredictos de Gemini IA</p>
+                </div>
 
-                    <div class="monitoring-dashboard">
-                        <div class="monitoring-charts">
-                            <div class="chart-card">
-                                <h4>Amenazas por Hora</h4>
-                                <div class="chart-container" style="position: relative; height: 200px;">
-                                    <canvas id="threatsHourChart"></canvas>
-                                </div>
-                            </div>
-                            <div class="chart-card">
-                                <h4>Distribución Geográfica</h4>
-                                <div class="chart-container" style="position: relative; height: 200px;">
-                                    <canvas id="geoDistributionChart"></canvas>
-                                </div>
+                <div class="monitoring-dashboard">
+                    <div class="monitoring-charts">
+                        <div class="chart-card">
+                            <h4>Amenazas por Hora</h4>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="threatsHourChart"></canvas>
                             </div>
                         </div>
-
-                        <div class="monitoring-controls">
-                            <div class="control-panel">
-                                <h4>Panel de Control</h4>
-                                <button class="btn btn--primary btn--full-width" id="addTargetBtn">
-                                    <i class="fas fa-plus"></i>
-                                    Añadir Objetivo
-                                </button>
-                                <button class="btn btn--outline btn--full-width" id="configAlertsBtn">
-                                    <i class="fas fa-bell"></i>
-                                    Configurar Alertas
-                                </button>
-                                <button class="btn btn--outline btn--full-width" id="exportMonitoringData">
-                                    <i class="fas fa-download"></i>
-                                    Exportar Datos
-                                </button>
+                        <div class="chart-card">
+                            <h4>Distribución Geográfica</h4>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="geoDistributionChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <div class="monitoring-targets">
-                        <h3>Targets Monitoreados</h3>
-                        <div class="targets-list" id="monitoringTargetsList">
-                            <!-- Monitoring targets will be populated here -->
+                    <div class="monitoring-controls">
+                        <div class="control-panel">
+                            <h4>Panel de Control</h4>
+                            <button class="btn btn--primary btn--full-width" onclick="showAddMonitorModal()">
+                                <i class="fas fa-plus"></i> Añadir Objetivo
+                            </button>
+                            <button class="btn btn--outline btn--full-width" id="configAlertsBtn">
+                                <i class="fas fa-bell"></i> Configurar Alertas
+                            </button>
+                            <button class="btn btn--outline btn--full-width" id="exportMonitoringData">
+                                <i class="fas fa-download"></i> Exportar Datos
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <div class="recent-alerts">
-                        <h3>Alertas Recientes</h3>
-                        <div class="alerts-list" id="recentAlertsList">
-                            <!-- Recent alerts will be populated here -->
+                <div class="monitoring-targets">
+                    <h3>Targets Monitoreados</h3>
+                    <div class="targets-list" id="monitoringTargetsList">
+                        <div class="empty-state">
+                            <p>No hay objetivos activos. Añade una IP o Dominio para comenzar.</p>
                         </div>
                     </div>
-                </section>
+                </div>
 
+                <div class="recent-alerts">
+                    <h3>Alertas Recientes de IA</h3>
+                    <div class="alerts-list" id="recentAlertsList">
+                        </div>
+                </div>
+            </section>
+                
                 <!-- Settings Section -->
                 <section id="settings-section" class="content-section">
                     <div class="settings-advanced">
