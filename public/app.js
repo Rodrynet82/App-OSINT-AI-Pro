@@ -477,7 +477,95 @@ const toolsDatabase = {
 };
 
 // DOM initialization
+function showNotification(message, type = 'info', duration = 3000) {
+  let container = document.getElementById('notification-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'notification-container';
+    container.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 10px;
+    `;
+    document.body.appendChild(container);
+  }
+
+  const notif = document.createElement('div');
+  const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+  const colors = { success: '#10b981', error: '#ef4444', warning: '#f59e0b', info: '#3b82f6' };
+
+  notif.style.cssText = `
+    background: var(--surface-light, #1e1e2d); border-left: 4px solid ${colors[type] || colors.info};
+    color: var(--text-primary, #ffffff); padding: 12px 20px; border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px;
+    font-family: inherit; font-size: 0.9rem; opacity: 0; transform: translateX(50px); transition: all 0.3s ease;
+  `;
+  notif.innerHTML = `<i class="fas ${icons[type] || icons.info}" style="color: ${colors[type] || colors.info};"></i><span>${message}</span>`;
+  container.appendChild(notif);
+
+  requestAnimationFrame(() => { notif.style.opacity = '1'; notif.style.transform = 'translateX(0)'; });
+  setTimeout(() => {
+    notif.style.opacity = '0'; notif.style.transform = 'translateX(50px)';
+    setTimeout(() => { if (notif.parentNode) notif.parentNode.removeChild(notif); }, 300);
+  }, duration);
+}
+
+function openModal(modalId) {
+  const modal = document.getElementById(modalId);
+  const overlay = document.getElementById('modalOverlay');
+  if (modal && overlay) {
+    overlay.classList.remove('hidden');
+    modal.classList.remove('hidden');
+    modal.style.opacity = '0'; modal.style.transform = 'translateY(-20px)';
+    requestAnimationFrame(() => {
+      modal.style.transition = 'all 0.3s ease';
+      modal.style.opacity = '1'; modal.style.transform = 'translateY(0)';
+    });
+  }
+}
+
+function closeAllModals() {
+  const overlay = document.getElementById('modalOverlay');
+  if (overlay) overlay.classList.add('hidden');
+  document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
+}
+
+window.viewReportDetails = function (reportId) {
+  showNotification('Cargando detalles del reporte...', 'info');
+  setTimeout(() => { openModal('reportDetailsModal'); }, 500);
+}
+
+function initializeSettingsSection() {
+  console.log('⚙️ Inicializando sección de configuración...');
+  const tabs = document.querySelectorAll('.settings-tab');
+  const panels = document.querySelectorAll('.settings-panel');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      panels.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const targetPanel = document.getElementById(`${tab.dataset.tab}-settings`);
+      if (targetPanel) targetPanel.classList.add('active');
+    });
+  });
+
+  const themeSelect = document.getElementById('themeSelect');
+  if (themeSelect) {
+    themeSelect.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      if (mode === 'dark') { document.body.classList.remove('light-mode'); localStorage.setItem('osint_theme', 'dark'); }
+      else if (mode === 'light') { document.body.classList.add('light-mode'); localStorage.setItem('osint_theme', 'light'); }
+      else { document.body.classList.remove('light-mode'); localStorage.removeItem('osint_theme'); }
+      showNotification('Tema actualizado', 'success');
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+  const overlay = document.getElementById('modalOverlay');
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeAllModals(); });
+  document.querySelectorAll('.modal-close').forEach(btn => btn.addEventListener('click', closeAllModals));
+
+
   console.log('🚀 Initializing OSINT AI Pro Platform...');
 
   try {
