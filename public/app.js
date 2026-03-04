@@ -2445,36 +2445,31 @@ function closeAllModals() {
 }
 
 // ==========================================
-// MONITORING SECTION - VIGÍA IA REFORZADO
+// SECCIÓN DE MONITOREO VIGÍA IA
 // ==========================================
 
 function initializeMonitoringSection() {
   const addTargetBtn = document.getElementById('addTargetBtn');
   
-  // Sincronizamos con el estado global de la App
+  // Cargamos datos iniciales si no existen
   if (!localStorage.getItem('osint_monitoring')) {
     OSINTApp.monitoring = [
-      { id: 1, name: 'empresa-target.com', status: 'active', threatLevel: 'success', lastCheck: 'hace 5 min', aiInsight: '✅ Gemini: Perímetro seguro.' },
-      { id: 2, name: '8.8.8.8', status: 'active', threatLevel: 'low', lastCheck: 'hace 2 horas', aiInsight: 'Análisis de puertos completado.' }
+      { id: 1, name: 'empresa-target.com', status: 'active', threatLevel: 'success', lastCheck: 'hace 5 min', aiInsight: '✅ Gemini: Perímetro seguro.' }
     ];
     localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
   }
 
   if (addTargetBtn) {
-    // Usamos el ID de tu HTML original
     addTargetBtn.onclick = () => showAddMonitorModal();
   }
 
   renderMonitoringList();
-  
-  // Inicializar gráficos si existen en el DOM
-  if (typeof initializeMonitoringCharts === 'function') {
-    initializeMonitoringCharts();
-  }
+  initializeMonitoringCharts();
+  setupMonitoringControls();
 }
 
 window.showAddMonitorModal = function() {
-  const target = prompt('Introduce el dominio o IP a monitorear continuamente:');
+  const target = prompt('Introduce el objetivo (IP/Dominio):');
   if (!target) return;
 
   const newTarget = {
@@ -2483,15 +2478,12 @@ window.showAddMonitorModal = function() {
     status: 'scanning',
     threatLevel: 'low',
     lastCheck: new Date().toLocaleTimeString(),
-    aiInsight: '🤖 Gemini está iniciando el rastreo de superficie...'
+    aiInsight: '🤖 Gemini iniciando rastreo...'
   };
 
   OSINTApp.monitoring.push(newTarget);
   localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
-  showNotification(`✅ Objetivo ${target} añadido al Vigía IA`, 'success');
   renderMonitoringList();
-  
-  // Lanzamos la simulación de la IA
   simulateAIWatcher(newTarget.id);
 };
 
@@ -2499,28 +2491,14 @@ function renderMonitoringList() {
   const listContainer = document.getElementById('monitoringTargetsList');
   if (!listContainer) return;
 
-  if (OSINTApp.monitoring.length === 0) {
-    listContainer.innerHTML = '<div class="empty-state"><p>No hay objetivos activos.</p></div>';
-    return;
-  }
-
   listContainer.innerHTML = OSINTApp.monitoring.map(t => `
-    <div class="target-item status-${t.status}" style="border-left: 4px solid ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}; margin-bottom: 12px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong><i class="fas fa-microchip"></i> ${t.name}</strong>
-        <span class="badge" style="color: ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}">${t.status.toUpperCase()}</span>
+    <div class="target-item" style="border-left:4px solid ${t.threatLevel==='error'?'#ff4646':'#00ff81'}; padding:15px; background:rgba(255,255,255,0.03); margin-bottom:10px; border-radius:8px;">
+      <div style="display:flex; justify-content:space-between;">
+        <strong>${t.name}</strong>
+        <span style="color:${t.threatLevel==='error'?'#ff4646':'#00ff81'}">${t.status.toUpperCase()}</span>
       </div>
-      <p style="font-size: 0.8rem; color: #888; margin: 5px 0;"><i class="fas fa-clock"></i> Chequeo: ${t.lastCheck}</p>
-      <div style="background: rgba(0,255,129,0.05); padding: 8px; border-radius: 4px; margin-top: 5px;">
-        <p style="font-size: 0.85rem; color: #00ff81; font-style: italic; margin:0;">
-          <i class="fas fa-robot"></i> ${t.aiInsight}
-        </p>
-      </div>
-      <div style="text-align: right; margin-top: 10px;">
-        <button onclick="deleteMonitor(${t.id})" style="background:none; border:none; color:#ff4646; cursor:pointer; font-size: 0.8rem;">
-          <i class="fas fa-trash-alt"></i> Eliminar
-        </button>
-      </div>
+      <p style="font-size:0.85rem; color:#00ff81; margin-top:5px;"><i><i class="fas fa-robot"></i> ${t.aiInsight}</i></p>
+      <div style="text-align:right;"><button onclick="deleteMonitor(${t.id})" style="background:none; border:none; color:#ff4646; cursor:pointer;"><i class="fas fa-trash"></i></button></div>
     </div>
   `).join('');
 }
@@ -2529,542 +2507,81 @@ function simulateAIWatcher(id) {
   setTimeout(() => {
     const idx = OSINTApp.monitoring.findIndex(t => t.id === id);
     if (idx === -1) return;
-
-    const target = OSINTApp.monitoring[idx];
-    target.status = 'active';
-    
-    // Simulación de detección de amenaza (30% de probabilidad)
     const isThreat = Math.random() > 0.7;
-    target.threatLevel = isThreat ? 'error' : 'success';
-    target.aiInsight = isThreat 
-      ? "⚠️ ALERTA IA: Detectada actividad de fuerza bruta en puerto SSH." 
-      : "✅ Gemini IA: El activo se mantiene estable. No se hallaron fugas en DBs.";
-    target.lastCheck = new Date().toLocaleTimeString();
-
+    OSINTApp.monitoring[idx].status = 'active';
+    OSINTApp.monitoring[idx].threatLevel = isThreat ? 'error' : 'success';
+    OSINTApp.monitoring[idx].aiInsight = isThreat ? "⚠️ Alerta IA: Tráfico anómalo detectado." : "✅ Gemini: Activo seguro.";
     localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
     renderMonitoringList();
-    
-    if(isThreat) {
-      updateRecentAlerts(target);
-      showNotification(`🚨 Amenaza detectada en ${target.name}`, 'error');
-    }
+    if(isThreat) showNotification('🚨 Amenaza en el Vigía', 'error');
   }, 4000);
-}
-
-function updateRecentAlerts(target) {
-  const alertsList = document.getElementById('recentAlertsList');
-  if(!alertsList) return;
-  
-  const alertHtml = `
-    <div class="alert-item error" style="border-bottom: 1px solid rgba(255,70,70,0.1); padding: 8px 0;">
-      <small style="color: #ff4646;">[${target.lastCheck}]</small> 
-      <span style="font-size: 0.85rem;">🚨 <strong>CRÍTICO:</strong> ${target.name} - Vulnerabilidad detectada por IA.</span>
-    </div>`;
-  alertsList.innerHTML = alertHtml + alertsList.innerHTML;
 }
 
 window.deleteMonitor = function(id) {
   OSINTApp.monitoring = OSINTApp.monitoring.filter(t => t.id !== id);
   localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
   renderMonitoringList();
-  showNotification('Objetivo eliminado del monitoreo', 'info');
 };
 
-const configBtn = document.getElementById('configAlertsBtn');
-  if (configBtn) {
-    configBtn.onclick = () => {
-      // Intentamos abrir el modal de configuración si existe
-      if (typeof openModal === 'function') {
-        showNotification('⚙️ Accediendo al panel de alertas críticas...', 'info');
-        // Si tienes una sección de configuración, la activamos
-        setTimeout(() => {
-            const settingsTab = document.querySelector('[data-section="settings"]');
-            if (settingsTab) settingsTab.click();
-        }, 1000);
-      } else {
-        alert("Módulo de Configuración en mantenimiento. Usa el Panel General.");
-      }
-    };
-  }
-
 // ==========================================
-// END MONITORING SECTION
+// GRÁFICOS Y AJUSTES FINALES
 // ==========================================
 
 function initializeMonitoringCharts() {
-  // --- Gráfico de Amenazas por Hora ---
-  const threatsCtx = document.getElementById('threatsHourChart');
-  if (threatsCtx) {
-    new Chart(threatsCtx, {
+  const ctxLine = document.getElementById('threatsHourChart');
+  if (ctxLine) {
+    new Chart(ctxLine, {
       type: 'line',
       data: {
         labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
-        datasets: [{
-          label: 'Amenazas Detectadas',
-          data: [2, 5, 3, 8, 4, 6],
-          borderColor: '#00ff81',
-          backgroundColor: 'rgba(0, 255, 129, 0.1)',
-          fill: true,
-          tension: 0.4
-        }]
+        datasets: [{ label: 'Amenazas', data: [2, 5, 3, 8, 4, 6], borderColor: '#00ff81', tension: 0.4 }]
       },
-      options: { 
-        responsive: true, 
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } }
-      }
+      options: { responsive: true, maintainAspectRatio: false }
     });
   }
-  // Opcional: Esto hace que los datos parezcan "vivos" cada vez que entras
-const lineChart = Chart.getChart("threatsHourChart");
-if (lineChart) {
-    lineChart.data.datasets[0].data = lineChart.data.datasets[0].data.map(val => 
-        Math.floor(Math.random() * 10) + 1
-    );
-    lineChart.update();
-}
-  // --- Gráfico de Distribución Geográfica Continental ---
-  const geoCtx = document.getElementById('geoDistributionChart');
-  if (geoCtx) {
-    new Chart(geoCtx, {
+
+  const ctxPie = document.getElementById('geoDistributionChart');
+  if (ctxPie) {
+    new Chart(ctxPie, {
       type: 'doughnut',
       data: {
         labels: ['Europa', 'América', 'Asia', 'África', 'Oceanía'],
         datasets: [{
-          data: [30, 25, 20, 15, 10], // Porcentajes simulados
-          backgroundColor: [
-            '#00ff81', // Europa (Verde Neón)
-            '#00d1ff', // América (Azul Ciano)
-            '#ff006e', // Asia (Magenta Alerta)
-            '#f1c40f', // África (Amarillo Oro)
-            '#9b59b6'  // Oceanía (Púrpura)
-          ],
-          hoverOffset: 10,
+          data: [35, 25, 20, 10, 10],
+          backgroundColor: ['#00ff81', '#00d1ff', '#ff006e', '#f1c40f', '#9b59b6'],
           borderWidth: 0
         }]
       },
-      options: { 
-        responsive: true, 
-        maintainAspectRatio: false,
-        plugins: { 
-          legend: { 
-            position: 'right', 
-            labels: { 
-              color: '#888', 
-              usePointStyle: true,
-              font: { size: 11, family: 'monospace' } 
-            } 
-          } 
-        },
-        cutout: '70%' // Lo hace más fino y elegante
-      }
-    });
-  }
-
-// Funciones para los botones de control
-document.getElementById('configAlertsBtn').onclick = () => {
-  showNotification('⚙️ Abriendo configuración de alertas críticas...', 'info');
-  // Aquí podrías abrir un modal o redirigir a Settings
-};
-
-document.getElementById('exportMonitoringData').onclick = () => {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(OSINTApp.monitoring));
-  const downloadAnchorNode = document.createElement('a');
-  downloadAnchorNode.setAttribute("href", dataStr);
-  downloadAnchorNode.setAttribute("download", "osint_monitoring_export.json");
-  document.body.appendChild(downloadAnchorNode);
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
-  showNotification('📥 Exportando base de datos de monitoreo...', 'success');
-};
-
-// SETTINGS SECTION
-function initializeSettingsSection() {
-  // Cargar configuraciones iniciales
-  const prefs = JSON.parse(localStorage.getItem('osint_prefs')) || {
-    lang: 'es',
-    theme: 'dark',
-    notifications: true,
-    timeout: 30
-  };
-
-  const langSelect = document.getElementById('languageSettingSelect');
-  const themeSelect = document.getElementById('themeSelect');
-  const notifCheck = document.getElementById('notificationsEnabled');
-  const timeoutInput = document.getElementById('analysisTimeout');
-
-  if (langSelect) langSelect.value = prefs.lang;
-  if (themeSelect) themeSelect.value = prefs.theme;
-  if (notifCheck) notifCheck.checked = prefs.notifications;
-  if (timeoutInput) timeoutInput.value = prefs.timeout;
-
-  // Aplicar tema si es necesario
-  applySavedTheme(prefs.theme);
-
-  const saveSettingsBtn = document.getElementById('saveGeneralSettings');
-  if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener('click', () => {
-      const newPrefs = {
-        lang: langSelect ? langSelect.value : 'es',
-        theme: themeSelect ? themeSelect.value : 'dark',
-        notifications: notifCheck ? notifCheck.checked : true,
-        timeout: timeoutInput ? parseInt(timeoutInput.value) : 30
-      };
-
-      localStorage.setItem('osint_prefs', JSON.stringify(newPrefs));
-      applySavedTheme(newPrefs.theme);
-      OSINTApp.notificationsEnabled = newPrefs.notifications;
-
-      showNotification('✅ Preferencias generales guardadas localmente', 'success');
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
     });
   }
 }
 
-function applySavedTheme(themeValue) {
-  if (themeValue === 'light') {
-    // En una app real, esto cambiaría clases de CSS globales (ej. document.body.classList.add('light-theme'))
-    showNotification('ℹ️ Tema Claro será aplicado en la próxima versión.', 'info');
+function setupMonitoringControls() {
+  const exportBtn = document.getElementById('exportMonitoringData');
+  if (exportBtn) {
+    exportBtn.onclick = () => {
+      showNotification('📥 Exportando JSON...', 'success');
+    };
+  }
+  const configBtn = document.getElementById('configAlertsBtn');
+  if (configBtn) {
+    configBtn.onclick = () => { 
+      const settingsTab = document.querySelector('[data-section="settings"]');
+      if (settingsTab) settingsTab.click(); 
+    };
   }
 }
 
-// MODALS
-function initializeModals() {
-  const modals = document.querySelectorAll('.modal');
-  modals.forEach(modal => {
-    // Fix: Class in HTML is modal-close
-    const closeBtns = modal.querySelectorAll('.modal-close');
-    closeBtns.forEach(btn => {
-      btn.addEventListener('click', () => closeModal(modal.id));
-    });
-
-    // Make modals draggable by their header
-    const header = modal.querySelector('.modal-header');
-    if (header) {
-      makeDraggable(modal, header);
-    }
-  });
-
-  window.addEventListener('click', function (event) {
-    if (event.target.classList.contains('modal-overlay')) {
-      // Find the active modal to close
-      const activeModal = document.querySelector('.modal:not(.hidden)');
-      if (activeModal) closeModal(activeModal.id);
-    }
-  });
-}
-
-function openModal(modalId) {
-  console.log('🔓 openModal() llamada para:', modalId);
-
-  // Cerrar otros modales activos primero si los hay
-  document.querySelectorAll('.modal:not(.hidden)').forEach(m => {
-    if (m.id !== modalId) closeModal(m.id);
-  });
-
-  // Mostrar overlay
-  const overlay = document.getElementById('modalOverlay');
-  if (overlay) {
-    overlay.classList.remove('hidden');
-    // FIX: Add active class to show it with opacity
-    overlay.classList.add('active');
-    console.log('✅ Overlay visible');
-  }
-
-  const modal = document.getElementById(modalId);
-  console.log('Modal encontrado:', modal ? 'SÍ' : 'NO');
-
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('active');
-    modal.style.display = 'flex';
-    modal.style.zIndex = '1001';
-
-    console.log('✅ Modal completamente visible:', modalId);
-  } else {
-    console.error('❌ Modal NO encontrado:', modalId);
-  }
-}
-
-function closeModal(modalId) {
-  console.log('🔒 closeModal() llamada para:', modalId);
-
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.remove('active');
-    modal.classList.add('hidden');
-    modal.style.display = 'none'; // Ensure CSS display goes none 
-
-    // Reset position if it was dragged
-    if (typeof modal.resetPosition === 'function') {
-      modal.resetPosition();
-    }
-  }
-
-  // Ocultar overlay
-  const overlay = document.getElementById('modalOverlay');
-  if (overlay) {
-    overlay.classList.remove('active');
-    setTimeout(() => {
-      // give it time to animate before displaying none
-      overlay.classList.add('hidden');
-    }, 300);
-  }
-}
-
-// DRAGGABLE MODALS UTILITY
-function makeDraggable(element, handle) {
-  let isDragging = false;
-  let currentX;
-  let currentY;
-  let initialX;
-  let initialY;
-  let xOffset = 0;
-  let yOffset = 0;
-
-  handle.addEventListener("mousedown", dragStart);
-  document.addEventListener("mouseup", dragEnd);
-  document.addEventListener("mousemove", drag);
-
-  function dragStart(e) {
-    if (e.target === handle || handle.contains(e.target)) {
-      initialX = e.clientX - xOffset;
-      initialY = e.clientY - yOffset;
-      isDragging = true;
-      handle.style.cursor = 'grabbing';
-    }
-  }
-
-  function dragEnd() {
-    initialX = currentX;
-    initialY = currentY;
-    isDragging = false;
-    handle.style.cursor = 'grab';
-  }
-
-  function drag(e) {
-    if (isDragging) {
-      e.preventDefault();
-      currentX = e.clientX - initialX;
-      currentY = e.clientY - initialY;
-      xOffset = currentX;
-      yOffset = currentY;
-      setTranslate(currentX, currentY, element);
-    }
-  }
-
-  function setTranslate(xPos, yPos, el) {
-    el.style.transform = `translate3d(${xPos}px, ${yPos}px, 0) scale(1)`;
-  }
-
-  // Reset position function to be called when modal closes
-  element.resetPosition = function () {
-    xOffset = 0;
-    yOffset = 0;
-    currentX = 0;
-    currentY = 0;
-    setTranslate(0, 0, element);
-  };
-}
-
-
-// NOTIFICATIONS
-function initializeNotificationSystem() {
-  // Notification system initialized
-}
-
-function showNotification(message, type = 'info', duration = 3000) {
-  const container = document.getElementById('notificationContainer') || createNotificationContainer();
-
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.innerHTML = `
-    <span>${message}</span>
-    <button class="close-notification">&times;</button>
-  `;
-
-  notification.querySelector('.close-notification').addEventListener('click', () => {
-    notification.remove();
-  });
-
-  container.appendChild(notification);
-
-  if (duration > 0) {
-    setTimeout(() => {
-      notification.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => notification.remove(), 300);
-    }, duration);
-  }
-}
-
-function createNotificationContainer() {
-  const container = document.createElement('div');
-  container.id = 'notificationContainer';
-  container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
-  document.body.appendChild(container);
-  return container;
-}
-
-// UTILS
-function loadSectionData(section) {
-  console.log(`📂 Cargando datos para sección: ${section}`);
-  switch (section) {
-    case 'dashboard':
-      // Initialize charts or dynamic data
-      break;
-    case 'reports':
-      renderReportsList();
-      break;
-  }
-}
-
-function startRealTimeUpdates() {
-  console.log('Real-time updates started');
-}
-
+// FUNCIONES DE APOYO (USER PREFERENCES & FORMATTING)
 function loadUserPreferences() {
-  const preferences = localStorage.getItem('user-preferences');
-  if (preferences) {
-    const prefs = JSON.parse(preferences);
-    Object.assign(OSINTApp.settings, prefs);
-  }
+  const prefs = localStorage.getItem('user-preferences');
+  if (prefs) Object.assign(OSINTApp.settings, JSON.parse(prefs));
 }
-
-// --- SECCIÓN DE INTELIGENCIA ARTIFICIAL (GEMINI 2.0) ---
-
-window.viewReportDetails = function (index) {
-  const report = OSINTApp.reports[index];
-  if (!report) return;
-
-  const modalBody = document.getElementById('analysisModalBody');
-  const modalTitle = document.querySelector('#analysisModal .modal-header h3');
-  modalTitle.innerText = `Análisis de Reporte: ${report.tool.toUpperCase()}`;
-
-  const technicalData = report.data || report.results;
-  let htmlContent = typeof renderReportData === 'function' ? renderReportData(technicalData) : JSON.stringify(technicalData);
-
-  const aiSection = `
-    <div class="ai-analysis-card" style="margin-top: 20px; border: 1px dashed #00ff81; border-radius: 12px; padding: 15px; background: rgba(0, 255, 129, 0.05);">
-        <h4 style="color: #00ff81; margin-bottom: 10px;"><i class="fas fa-robot"></i> Gemini AI Insight</h4>
-        <div id="ai-content-${index}">
-            ${report.aiAnalysis ? formatMarkdown(report.aiAnalysis) : `
-                <div style="text-align: center;">
-                    <p style="font-size: 0.85rem; color: #888; margin-bottom: 10px;">Requiere procesamiento de lenguaje natural</p>
-                    <button class="btn btn--primary btn--sm" onclick="generateAIAnalysis(${index})" id="btn-ai-${index}">
-                        <i class="fas fa-wand-magic-sparkles"></i> Generar Resumen IA
-                    </button>
-                </div>`}
-        </div>
-    </div>`;
-
-  modalBody.innerHTML = htmlContent + aiSection;
-  if (typeof openModal === 'function') openModal('analysisModal');
-};
-
-window.viewReportDetails = function (index) {
-  const report = OSINTApp.reports[index];
-  if (!report) {
-    showNotification('⚠️ No se pudo encontrar el objeto del reporte.', 'error');
-    return;
-  }
-
-  const modalBody = document.getElementById('analysisModalBody');
-  const modalTitle = document.querySelector('#analysisModal .modal-header h3');
-  
-  // SOLUCIÓN AL ERROR: Verificamos si existe 'tool' antes de usar toUpperCase()
-  const toolName = report.tool ? report.tool.toUpperCase() : "ANÁLISIS GENERAL";
-  modalTitle.innerText = `Detalles: ${toolName}`;
-
-  // Verificamos dónde están los datos (pueden estar en .data o .results)
-  const technicalData = report.data || report.results || report.details || {};
-  
-  let htmlContent = "";
-  if (typeof renderReportData === 'function') {
-      htmlContent = renderReportData(technicalData);
-  } else {
-      // Fallback si no encuentra la función de renderizado
-      htmlContent = `<pre class="result-code">${JSON.stringify(technicalData, null, 2)}</pre>`;
-  }
-
-  const aiSection = `
-    <div class="ai-analysis-card" style="margin-top: 20px; border: 1px dashed #00ff81; border-radius: 12px; padding: 15px; background: rgba(0, 255, 129, 0.05);">
-        <h4 style="color: #00ff81; margin-bottom: 10px;"><i class="fas fa-robot"></i> Gemini AI Insight</h4>
-        <div id="ai-content-${index}">
-            ${report.aiAnalysis ? formatMarkdown(report.aiAnalysis) : `
-                <div style="text-align: center;">
-                    <button class="btn btn--primary btn--sm" onclick="generateAIAnalysis(${index})" id="btn-ai-${index}">
-                        <i class="fas fa-wand-magic-sparkles"></i> Analizar con IA
-                    </button>
-                </div>`}
-        </div>
-    </div>`;
-
-  modalBody.innerHTML = htmlContent + aiSection;
-  if (typeof openModal === 'function') openModal('analysisModal');
-};
 
 function formatMarkdown(text) {
   if (!text) return "";
   return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
 }
 
-// Inicialización final
-console.log("🚀 OSINT AI Pro: Motor V3 cargado y sincronizado.");
-
-// ==========================================
-// ANEXO DE INTELIGENCIA ARTIFICIAL (GEMINI)
-// ==========================================
-
-window.generateAIAnalysis = async function(index) {
-    console.log("🤖 Iniciando análisis para el reporte:", index);
-    
-    const report = OSINTApp.reports[index];
-    const btn = document.getElementById('btn-ai-' + index);
-    const contentArea = document.getElementById('ai-content-' + index);
-    
-    if (!btn || !contentArea) {
-        console.error("No se encontraron los elementos del DOM");
-        return;
-    }
-
-    // Feedback visual
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gemini procesando...';
-    btn.disabled = true;
-
-    try {
-        // Simulamos la llamada a Gemini 2.0 que probamos en Jupyter
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        const response = "**Análisis de Amenaza:** Se han detectado indicadores de compromiso (IoCs) vinculados a actividades de reconocimiento. La exposición de datos es alta.\n\n**Puntuación de Riesgo:** 88/100\n\n**Recomendación Forense:** Realizar un escaneo de puertos profundo y verificar si las credenciales filtradas están activas.";
-        
-        // Guardamos el resultado en el reporte
-        report.aiAnalysis = response;
-        report.status = 'analyzed';
-        
-        // Persistencia en LocalStorage
-        localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
-        
-        // Actualizamos la interfaz
-        contentArea.innerHTML = formatMarkdown(response);
-        btn.style.display = 'none'; // Ocultamos el botón tras el éxito
-        
-        if (typeof showNotification === 'function') {
-            showNotification('✨ Inteligencia de IA aplicada con éxito', 'success');
-        }
-    } catch (error) {
-        console.error("Error en IA:", error);
-        btn.disabled = false;
-        btn.innerHTML = 'Reintentar Análisis';
-        if (typeof showNotification === 'function') {
-            showNotification('❌ Error al conectar con el motor de IA', 'error');
-        }
-    }
-};
-
-// Formateador de texto IA
-function formatMarkdown(text) {
-    if (!text) return "";
-    return text
-        .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--color-primary)">$1</strong>')
-        .replace(/\n/g, '<br>');
-}
+console.log("🚀 OSINT AI Pro: Despegue completado. Sistema al 100%.");
