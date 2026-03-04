@@ -2574,6 +2574,54 @@ window.deleteMonitor = function(id) {
 // END MONITORING SECTION
 // ==========================================
 
+function initializeMonitoringCharts() {
+  // --- Gráfico de Amenazas por Hora ---
+  const threatsCtx = document.getElementById('threatsHourChart');
+  if (threatsCtx) {
+    new Chart(threatsCtx, {
+      type: 'line',
+      data: {
+        labels: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00'],
+        datasets: [{
+          label: 'Amenazas Detectadas',
+          data: [2, 5, 3, 8, 4, 6],
+          borderColor: '#00ff81',
+          backgroundColor: 'rgba(0, 255, 129, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } }
+      }
+    });
+  }
+
+  // --- Gráfico de Distribución Geográfica ---
+  const geoCtx = document.getElementById('geoDistributionChart');
+  if (geoCtx) {
+    new Chart(geoCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['USA', 'China', 'Russia', 'Europe', 'Otros'],
+        datasets: [{
+          data: [35, 25, 20, 15, 5],
+          backgroundColor: ['#00ff81', '#00d16d', '#00a355', '#00753d', '#004725'],
+          borderWidth: 0
+        }]
+      },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } } }
+      }
+    });
+  }
+}
+
 // SETTINGS SECTION
 function initializeSettingsSection() {
   // Cargar configuraciones iniciales
