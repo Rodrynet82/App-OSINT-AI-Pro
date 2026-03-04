@@ -2622,6 +2622,23 @@ function initializeMonitoringCharts() {
   }
 }
 
+// Funciones para los botones de control
+document.getElementById('configAlertsBtn').onclick = () => {
+  showNotification('⚙️ Abriendo configuración de alertas críticas...', 'info');
+  // Aquí podrías abrir un modal o redirigir a Settings
+};
+
+document.getElementById('exportMonitoringData').onclick = () => {
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(OSINTApp.monitoring));
+  const downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", "osint_monitoring_export.json");
+  document.body.appendChild(downloadAnchorNode);
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+  showNotification('📥 Exportando base de datos de monitoreo...', 'success');
+};
+
 // SETTINGS SECTION
 function initializeSettingsSection() {
   // Cargar configuraciones iniciales
