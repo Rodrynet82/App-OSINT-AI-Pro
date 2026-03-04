@@ -1,0 +1,1040 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSINT AI Pro - Plataforma de Inteligencia Avanzada</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/globe.gl"></script>
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span class="logo-text">OSINT AI Pro</span>
+                </div>
+                <h2>Acceso Premium</h2>
+                <p>Plataforma profesional de inteligencia y an├ílisis</p>
+            </div>
+            <form class="login-form" onsubmit="return false;">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="loginEmail" class="form-control" placeholder="admin@osint-ai-pro.com"
+                        value="admin@osint-ai-pro.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contrase├▒a</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="OSINTPro2025!"
+                        value="OSINTPro2025!">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="rememberMe" checked>
+                        <span class="checkmark"></span>
+                        Recordar sesi├│n
+                    </label>
+                </div>
+                <button id="loginBtn" class="btn btn--primary btn--full-width">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Iniciar Sesi├│n
+                </button>
+                <div class="demo-credentials">
+                    <p><strong>Credenciales Demo Premium:</strong></p>
+                    <p>Email: admin@osint-ai-pro.com</p>
+                    <p>Password: OSINTPro2025!</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="app hidden" id="mainApp">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-brain"></i>
+                    <span class="logo-text">OSINT AI Pro</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- Language Selector -->
+            <div class="language-selector">
+                <select id="languageSelect" class="language-dropdown">
+                    <option value="es" selected>­ƒç¬­ƒç© Espa├▒ol</option>
+                    <option value="en">­ƒç║­ƒç© English</option>
+                </select>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="intelligence">
+                    <i class="fas fa-search"></i>
+                    <span>Investigaci├│n IA</span>
+                </a>
+                <a href="#" class="nav-item" data-section="tools">
+                    <i class="fas fa-toolbox"></i>
+                    <span>Suite de Herramientas</span>
+                </a>
+                <a href="#" class="nav-item" data-section="reports">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Reportes</span>
+                </a>
+                <a href="#" class="nav-item" data-section="monitoring">
+                    <i class="fas fa-eye"></i>
+                    <span>Monitoreo</span>
+                </a>
+                <a href="#" class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuraci├│n</span>
+                </a>
+            </nav>
+
+            <!-- AI Status -->
+            <div class="ai-status">
+                <div class="ai-indicator active">
+                    <i class="fas fa-robot"></i>
+                    <span>IA Activa</span>
+                </div>
+                <div class="ai-stats">
+                    <div class="stat">
+                        <span class="stat-value" id="aiProcessedToday">2.3K</span>
+                        <span class="stat-label">Analizados</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="threatLevel">Alto</span>
+                        <span class="stat-label">Amenazas</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="logout-section">
+                <button id="logoutBtn" class="btn btn--outline btn--sm">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Cerrar Sesi├│n</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <div class="header-title">
+                    <h1 id="page-title">Dashboard</h1>
+                    <p class="header-subtitle">Plataforma OSINT con IA avanzada y an├ílisis autom├ítico</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn--outline btn--sm" id="themeToggleBtn" title="Cambiar tema">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    <div class="quick-actions">
+                        <button class="btn btn--outline btn--sm" id="quickScanBtn">
+                            <i class="fas fa-bolt"></i>
+                            <span>An├ílisis R├ípido</span>
+                        </button>
+                        <button class="btn btn--outline btn--sm" id="notificationsBtn">
+                            <i class="fas fa-bell"></i>
+                            <span>Notificaciones</span>
+                            <span class="notification-badge" id="notificationCount">3</span>
+                        </button>
+                        <div class="user-badge premium" id="userBadge">
+                            <i class="fas fa-user-shield"></i>
+                            <span id="userModeText">ADMIN MODE</span>
+                        </div>
+                    </div>
+                    <div class="threat-alert" id="threatAlert">
+                        <i class="fas fa-shield-alt"></i>
+                        <span class="threat-count">26</span>
+                        <span class="threat-text">Amenazas</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Dashboard Section -->
+                <section id="dashboard-section" class="content-section active">
+                    <div class="metrics-grid">
+                        <div class="metric-card clickable-metric" data-modal="analysisModal">
+                            <div class="metric-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h3 class="metric-value">147</h3>
+                                <p class="metric-label">An├ílisis IA</p>
+                                <div class="metric-change positive">+32 hoy</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card clickable-metric" data-modal="investigationsModal">
+                            <div class="metric-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h3 class="metric-value">3,247</h3>
+                                <p class="metric-label">Investigaciones</p>
+                                <div class="metric-change positive">+847 hoy</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card risk clickable-metric" data-modal="scoreModal">
+                            <div class="metric-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h3 class="metric-value">67</h3>
+                                <p class="metric-label">Score de Riesgo</p>
+                                <div class="metric-change negative">Alto</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card clickable-metric" data-modal="countriesModal">
+                            <div class="metric-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h3 class="metric-value">89</h3>
+                                <p class="metric-label">Pa├¡ses</p>
+                                <div class="metric-change positive">+12 hoy</div>
+                            </div>
+                        </div>
+
+                        <div class="metric-card clickable-metric" id="networkAnalysisCard"
+                            style="border-left: 4px solid #38bdf8;">
+                            <div class="metric-icon" style="background: rgba(56, 189, 248, 0.1); color: #38bdf8;">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div class="metric-content">
+                                <h3 class="metric-value">RED</h3>
+                                <p class="metric-label">Analizar Mi Red</p>
+                                <div class="metric-change" style="color: #38bdf8;">Scan Local</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kaspersky-style Threat Map -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Mapa Global de Amenazas</h3>
+                            <div class="card-actions">
+                                <div class="realtime-indicator">
+                                    <div class="pulse-dot"></div>
+                                    <span>En Vivo</span>
+                                </div>
+                                <button class="btn btn--outline btn--sm" id="updateMapBtn">
+                                    <i class="fas fa-sync-alt"></i>
+                                    <span>Actualizar Mapa</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="kaspersky-map-container">
+                            <div id="threatMap" class="threat-map"></div>
+                            <canvas id="effectsCanvas" class="effects-canvas"></canvas>
+
+                            <div class="map-controls">
+                                <button class="btn btn--outline btn--sm" id="mapPlayPauseBtn"
+                                    title="Pausar/Reanudar rotaci├│n del planeta"><i class="fas fa-pause"></i></button>
+                                <button class="btn btn--outline btn--sm" id="mapZoomGlobalBtn"
+                                    title="Centrar c├ímara (Vista Global)"><i class="fas fa-globe"></i></button>
+
+                                <!-- Live Target Box -->
+                                <div class="live-target-box">
+                                    <div class="header"><i class="fas fa-satellite-dish"></i> Interceptando Se├▒al</div>
+                                    <div id="liveTargetCountry" class="country">Esperando telemetr├¡a...</div>
+                                    <div id="liveTargetThreat" class="threat">---</div>
+                                </div>
+                            </div>
+
+                            <div class="threat-legend">
+                                <div class="legend-item interactive-legend" data-threat="OAS"
+                                    title="Click para m├ís informaci├│n">
+                                    <div class="legend-color" style="background: #39ff14;"></div>
+                                    <span>OAS: <span id="oasCount">26062</span></span>
+                                </div>
+                                <div class="legend-item interactive-legend" data-threat="DDS"
+                                    title="Click para m├ís informaci├│n">
+                                    <div class="legend-color" style="background: #ff006e;"></div>
+                                    <span>DDS: <span id="ddsCount">64354</span></span>
+                                </div>
+                                <div class="legend-item interactive-legend" data-threat="MAV"
+                                    title="Click para m├ís informaci├│n">
+                                    <div class="legend-color" style="background: #00f5ff;"></div>
+                                    <span>MAV: <span id="mavCount">19399</span></span>
+                                </div>
+                                <div class="legend-item interactive-legend" data-threat="NAV"
+                                    title="Click para m├ís informaci├│n">
+                                    <div class="legend-color" style="background: #9d00ff;"></div>
+                                    <span>NAV: <span id="navCount">65383</span></span>
+                                </div>
+                                <div class="legend-item interactive-legend" data-threat="IDS"
+                                    title="Click para m├ís informaci├│n">
+                                    <div class="legend-color" style="background: #ff9500;"></div>
+                                    <span>IDS: <span id="idsCount">9</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Threat Feed -->
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h3>Feed de Amenazas en Tiempo Real</h3>
+                            <div class="threat-filters">
+                                <select id="threatFeedFilter" class="form-control form-control--sm">
+                                    <option value="all">Todos los Tipos</option>
+                                    <option value="OAS">OAS - Antivirus</option>
+                                    <option value="DDS">DDS - DDoS</option>
+                                    <option value="MAV">MAV - Malware</option>
+                                    <option value="NAV">NAV - Network</option>
+                                    <option value="IDS">IDS - Intrusion</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="threat-feed" id="threatFeed">
+                            <!-- Threats will be populated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Intelligence Section -->
+                <section id="intelligence-section" class="content-section">
+                    <div class="intelligence-header">
+                        <h2><i class="fas fa-satellite-dish" style="color: #38bdf8; margin-right: 10px;"></i> Centro de
+                            Investigaci├│n IA</h2>
+                        <p>Plataforma universal de recopilaci├│n y correlaci├│n de datos OSINT a trav├®s de redes
+                            neuronales.</p>
+                    </div>
+
+                    <div class="intelligence-search-panel">
+                        <div class="search-bar-wrapper">
+                            <i class="fas fa-crosshairs target-icon"></i>
+                            <input type="text" id="universalSearchInput"
+                                placeholder="Introduce Objetivo (IP, Dominio, Email, Usuario, Hash...)"
+                                class="universal-input">
+                            <button class="btn btn--primary" id="startUniversalSearchBtn">
+                                <i class="fas fa-radar"></i> Iniciar Escaneo
+                            </button>
+                            <button class="btn btn--outline" id="analyzeMyNetworkBtn"
+                                title="Detectar mi IP p├║blica y analizar autom├íticamente">
+                                <i class="fas fa-network-wired"></i> Analizar mi Red
+                            </button>
+                        </div>
+
+                        <div class="search-options">
+                            <label class="scan-option">
+                                <input type="checkbox" id="optDeepScan" checked>
+                                <span class="custom-checkbox"></span>
+                                An├ílisis Profundo
+                            </label>
+                            <label class="scan-option">
+                                <input type="checkbox" id="optAiCorrelate" checked>
+                                <span class="custom-checkbox"></span>
+                                Red Neuronal Activa
+                            </label>
+                            <label class="scan-option">
+                                <input type="checkbox" id="optHistorical">
+                                <span class="custom-checkbox"></span>
+                                Hist├│rico (Dark Web)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- AI Scanner Loader (Hidden by default) -->
+                    <div id="aiScannerLoader" class="ai-scanner-loader hidden">
+                        <div class="scanner-circle"></div>
+                        <div class="scanner-text">
+                            <h3><i class="fas fa-brain"></i> Inicializando Red Neuronal...</h3>
+                            <p id="scannerStatus">Analizando vectores de ataque y cruzando datos GLOBALES.</p>
+                        </div>
+                    </div>
+
+                    <!-- Intelligence Results Container (Hidden by default) -->
+                    <div id="intelligenceResults" class="intelligence-results hidden">
+                        <div class="results-header">
+                            <div class="results-title">
+                                <h3><i class="fas fa-file-contract"></i> Reporte de Inteligencia: <span
+                                        id="reportTargetName" style="color: var(--neon-cyan);">---</span></h3>
+                                <p>Generado por <span
+                                        style="font-family: var(--font-family-mono); color: var(--color-white)">OSINT AI
+                                        Pro Core</span></p>
+                            </div>
+                            <div class="results-actions">
+                                <button class="btn btn--outline btn--sm" id="btnExportJson">
+                                    <i class="fas fa-code"></i> JSON
+                                </button>
+                                <button class="btn btn--outline btn--sm" id="btnSaveReport">
+                                    <i class="fas fa-save"></i> Guardar Reporte
+                                </button>
+                                <button class="btn btn--primary btn--sm" id="btnExportPdf">
+                                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="results-grid">
+                            <!-- Column 1: Risk & Map -->
+                            <div class="results-col">
+                                <div class="dashboard-card risk-card">
+                                    <div class="card-header">
+                                        <h3>Evaluaci├│n de Riesgo IA</h3>
+                                    </div>
+                                    <div class="risk-display">
+                                        <div class="risk-circle" id="intelRiskCircle">
+                                            <span class="score" id="intelRiskScore">0</span>
+                                            <span class="label">Riesgo</span>
+                                        </div>
+                                        <div class="risk-info">
+                                            <div class="risk-level" id="intelRiskLevel">Desconocido</div>
+                                            <p id="intelRiskDesc">Esperando datos de telemetr├¡a para evaluar el nivel de
+                                                peligrosidad del objetivo.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="dashboard-card geoposition-card">
+                                    <div class="card-header">
+                                        <h3>Geolocalizaci├│n Estimada</h3>
+                                    </div>
+                                    <div id="intelMiniMap" class="mini-map-container">
+                                        <!-- Map or static representation goes here -->
+                                        <div class="map-overlay-scan"></div>
+                                        <img src="https://static.vecteezy.com/system/resources/previews/000/153/588/original/vector-world-map-dotted-style-isolated-on-dark-background.jpg"
+                                            alt="Radar Map"
+                                            style="width: 100%; height: 200px; object-fit: cover; opacity: 0.5; border-radius: 8px;">
+                                        <div class="target-pin hidden" id="targetPin"><i
+                                                class="fas fa-map-marker-alt"></i></div>
+                                    </div>
+                                    <div class="geo-details"
+                                        style="margin-top: 15px; font-family: monospace; color: #94a3b8; font-size: 13px;">
+                                        <div><span style="color: #fff">Pa├¡s:</span> <span id="geoCountry">---</span>
+                                        </div>
+                                        <div><span style="color: #fff">ISP/Org:</span> <span id="geoIsp">---</span>
+                                        </div>
+                                        <div><span style="color: #fff">Coordenadas:</span> <span
+                                                id="geoCoords">---</span></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column 2: Extracted Data -->
+                            <div class="results-col wide">
+                                <div class="dashboard-card">
+                                    <div class="card-header">
+                                        <h3><i class="fas fa-network-wired"></i> Huella Digital (OSINT Data)</h3>
+                                    </div>
+                                    <div class="extracted-data-grid">
+                                        <div class="data-box">
+                                            <h4>Puertos Abiertos</h4>
+                                            <ul id="dataPorts" class="data-list">
+                                                <li>Esperando escaneo...</li>
+                                            </ul>
+                                        </div>
+                                        <div class="data-box">
+                                            <h4>Vulnerabilidades (CVEs)</h4>
+                                            <ul id="dataCves" class="data-list">
+                                                <li>Esperando escaneo...</li>
+                                            </ul>
+                                        </div>
+                                        <div class="data-box">
+                                            <h4>Dark Web Mentions</h4>
+                                            <div id="dataDarkWeb" class="dark-web-alert info">
+                                                Sin datos en cach├® temporal.
+                                            </div>
+                                        </div>
+                                        <div class="data-box">
+                                            <h4>Subdominios / Nombres</h4>
+                                            <ul id="dataNames" class="data-list">
+                                                <li>No aplicable</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="dashboard-card">
+                                    <div class="card-header">
+                                        <h3><i class="fas fa-robot"></i> Veredicto de la Red Neuronal</h3>
+                                    </div>
+                                    <div class="ai-verdict-box" id="aiVerdictBox">
+                                        El sistema OSINT AI Pro no ha analizado ning├║n objetivo todav├¡a. Introduzca un
+                                        par├ímetro v├ílido en el panel superior para iniciar la traza.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tools Section -->
+                <section id="tools-section" class="content-section">
+                    <!-- Section Header -->
+                    <div class="tools-page-header">
+                        <div class="tools-page-title">
+                            <div class="tools-page-icon">
+                                <i class="fas fa-toolbox"></i>
+                            </div>
+                            <div>
+                                <h2>Suite de Herramientas OSINT</h2>
+                                <p id="toolsActiveCount">Cargando herramientas...</p>
+                            </div>
+                        </div>
+                        <div class="tools-page-actions">
+                            <div class="tools-search-wrapper">
+                                <i class="fas fa-search tools-search-icon"></i>
+                                <input type="text" id="toolsSearchInput" class="tools-search-input"
+                                    placeholder="Buscar herramienta...">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Categories grid -->
+                    <div class="tools-master-grid" id="toolsCategories">
+                        <!-- Tool categories will be populated here by JS -->
+                    </div>
+
+                    <!-- Inline Execution Panel (hidden by default, slides in when a tool is selected) -->
+                    <div class="tool-inline-panel" id="toolInlinePanel">
+                        <div class="tool-inline-panel-header">
+                            <div class="tool-inline-panel-title">
+                                <i id="inlinePanelIcon" class="fas fa-terminal"></i>
+                                <h3 id="inlinePanelTitle">Selecciona una herramienta</h3>
+                            </div>
+                            <div class="tool-inline-panel-header-actions">
+                                <button class="btn btn--primary btn--sm" id="inlinePanelExecBtn">
+                                    <i class="fas fa-play"></i> Ejecutar
+                                </button>
+                                <button class="btn btn--outline btn--sm" onclick="closeInlineToolPanel()">
+                                    <i class="fas fa-times"></i> Cerrar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tool-inline-panel-body">
+                            <div class="tool-inline-form-area" id="inlinePanelForm">
+                                <!-- Form fields injected here by JS -->
+                            </div>
+                            <div class="tool-inline-results-area" id="inlinePanelResults">
+                                <div class="inline-results-placeholder">
+                                    <i class="fas fa-terminal"></i>
+                                    <p>Introduce los par├ímetros y pulsa Ejecutar</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="reports-section" class="content-section">
+                    <div class="reports-header">
+                        <div class="reports-title-section">
+                            <h2>Generador de Reportes Ejecutivos</h2>
+                            <p>Sistema de generaci├│n de reportes profesionales personalizados</p>
+                        </div>
+                        <button class="btn btn--primary" id="createReportBtn">
+                            <i class="fas fa-plus"></i>
+                            Nuevo Reporte
+                        </button>
+                    </div>
+
+                    <div class="reports-list">
+                        <h3>Reportes Existentes</h3>
+                        <div class="reports-grid" id="existingReports">
+                            <!-- Existing reports will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="report-templates">
+                        <h3>Templates Disponibles</h3>
+                        <div class="templates-grid" id="reportTemplates">
+                            <!-- Templates will be populated here -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Monitoring Section -->
+                <section id="monitoring-section" class="content-section">
+                    <div class="monitoring-header">
+                        <h2><i class="fas fa-eye text-primary"></i> Monitoreo Continuo</h2>
+                        <p>Sistema de inteligencia activa con veredictos de Gemini IA</p>
+                </div>
+
+                <div class="monitoring-dashboard">
+                    <div class="monitoring-charts">
+                        <div class="chart-card">
+                            <h4>Amenazas por Hora</h4>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="threatsHourChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h4>Distribuci├│n Geogr├ífica</h4>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="geoDistributionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="monitoring-controls">
+                        <div class="control-panel">
+                            <h4>Panel de Control</h4>
+                            <button class="btn btn--primary btn--full-width" onclick="showAddMonitorModal()">
+                                <i class="fas fa-plus"></i> A├▒adir Objetivo
+                            </button>
+                            <button class="btn btn--outline btn--full-width" id="configAlertsBtn">
+                                <i class="fas fa-bell"></i> Configurar Alertas
+                            </button>
+                            <button class="btn btn--outline btn--full-width" id="exportMonitoringData">
+                                <i class="fas fa-download"></i> Exportar Datos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="monitoring-targets">
+                    <h3>Targets Monitoreados</h3>
+                    <div class="targets-list" id="monitoringTargetsList">
+                        <div class="empty-state">
+                            <p>No hay objetivos activos. A├▒ade una IP o Dominio para comenzar.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="recent-alerts">
+                    <h3>Alertas Recientes de IA</h3>
+                    <div class="alerts-list" id="recentAlertsList">
+                        </div>
+                </div>
+            </section>
+                
+                <!-- Settings Section -->
+                <section id="settings-section" class="content-section">
+                    <div class="settings-advanced">
+                        <h2>Configuraci├│n Avanzada</h2>
+                        <div class="settings-tabs">
+                            <button class="settings-tab active" data-tab="general">
+                                <i class="fas fa-cog"></i>
+                                <span>General</span>
+                            </button>
+                            <button class="settings-tab" data-tab="notifications">
+                                <i class="fas fa-bell"></i>
+                                <span>Notificaciones</span>
+                            </button>
+                            <button class="settings-tab" data-tab="account">
+                                <i class="fas fa-user"></i>
+                                <span>Cuenta</span>
+                            </button>
+                            <button class="settings-tab" data-tab="api">
+                                <i class="fas fa-plug"></i>
+                                <span>APIs</span>
+                            </button>
+                        </div>
+
+                        <div class="settings-content">
+                            <div class="settings-panel active" id="general-settings">
+                                <h3>Configuraci├│n General</h3>
+                                <div class="settings-grid">
+                                    <div class="setting-group">
+                                        <label>Idioma</label>
+                                        <select id="languageSettingSelect" class="form-control">
+                                            <option value="es" selected>Espa├▒ol</option>
+                                            <option value="en">English</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-group">
+                                        <label>Tema de Interfaz</label>
+                                        <select id="themeSelect" class="form-control">
+                                            <option value="auto">Autom├ítico</option>
+                                            <option value="light">Claro</option>
+                                            <option value="dark">Oscuro</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-group">
+                                        <label class="checkbox-label">
+                                            <input type="checkbox" id="notificationsEnabled" checked>
+                                            <span class="checkmark"></span>
+                                            Activar Notificaciones
+                                        </label>
+                                    </div>
+                                    <div class="setting-group">
+                                        <label>Timeout de An├ílisis (segundos)</label>
+                                        <input type="number" id="analysisTimeout" class="form-control" value="30"
+                                            min="10" max="300">
+                                    </div>
+                                </div>
+                                <div class="settings-actions">
+                                    <button class="btn btn--primary" id="saveGeneralSettings">
+                                        <i class="fas fa-save"></i>
+                                        Guardar Cambios
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="settings-panel" id="notifications-settings">
+                                <h3>Configuraci├│n de Notificaciones</h3>
+                                <div id="notificationSettingsList">
+                                    <!-- Notification settings will be populated here -->
+                                </div>
+                                <div class="settings-actions">
+                                    <button class="btn btn--primary" id="saveNotificationSettings">
+                                        <i class="fas fa-save"></i>
+                                        Guardar Configuraci├│n
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="settings-panel" id="account-settings">
+                                <h3>Informaci├│n de la Cuenta</h3>
+                                <div class="account-info">
+                                    <div class="account-details">
+                                        <div class="account-field">
+                                            <label>Email:</label>
+                                            <span id="userEmail">admin@osint-ai-pro.com</span>
+                                        </div>
+                                        <div class="account-field">
+                                            <label>Rol:</label>
+                                            <span id="userRole">Premium</span>
+                                        </div>
+                                        <div class="account-field">
+                                            <label>├Ültima sesi├│n:</label>
+                                            <span id="lastLogin">Hoy, 22:00 CEST</span>
+                                        </div>
+                                    </div>
+                                    <div class="account-actions">
+                                        <button class="btn btn--outline" id="changePasswordBtn">
+                                            <i class="fas fa-key"></i>
+                                            Cambiar Contrase├▒a
+                                        </button>
+                                        <button class="btn btn--outline" id="exportUserDataBtn">
+                                            <i class="fas fa-download"></i>
+                                            Exportar Datos
+                                        </button>
+                                        <button class="btn btn--outline" id="deleteUserBtn"
+                                            style="color: #ef4444; border-color: #ef4444;">
+                                            <i class="fas fa-trash-alt"></i>
+                                            Eliminar Usuario
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-panel" id="api-settings">
+                                <h3>Configuraci├│n de APIs</h3>
+                                <div class="api-controls">
+                                    <button class="btn btn--primary" id="addApiBtn">
+                                        <i class="fas fa-plus"></i>
+                                        A├▒adir Nueva API
+                                    </button>
+                                </div>
+                                <div class="api-status-grid" id="apiStatusGrid">
+                                    <!-- API configurations will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <!-- Dashboard Detail Modals -->
+        <div class="modal hidden" id="analysisModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>An├ílisis de Inteligencia Artificial</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="analysisModalBody">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="investigationsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Investigaciones Activas</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="investigationsModalBody">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="scoreModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Score de Riesgo Detallado</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="scoreModalBody">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="modal hidden" id="countriesModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Distribuci├│n por Pa├¡ses</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="countriesModalBody">
+                    <!-- Content populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Modal -->
+        <div class="modal hidden" id="notificationsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Notificaciones y Alertas</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="notificationsModalBody">
+                    <!-- Content populated by JavaScript -->
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: space-between;">
+                    <button class="btn btn--outline btn--sm" id="markAllReadBtn"><i class="fas fa-check-double"></i>
+                        Marcar todas como le├¡das</button>
+                    <button class="btn btn--primary btn--sm modal-close">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tool Modal -->
+        <div class="modal hidden" id="toolModal">
+            <div class="modal-content modal-wide">
+                <div class="modal-header">
+                    <h3 id="toolModalTitle">Ejecuci├│n de Herramienta</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body-dual">
+                    <div class="tool-execution-form" id="toolExecutionForm">
+                        <!-- Tool form will be populated here -->
+                    </div>
+                    <div class="tool-results-feed" id="toolResultsFeed">
+                        <h4><i class="fas fa-list"></i> Feed de Resultados</h4>
+                        <div class="results-feed-content" id="resultsFeedContent">
+                            <p class="no-results">No hay resultados a├║n. Ejecuta una herramienta para ver los resultados
+                                aqu├¡.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline modal-close">Cancelar</button>
+                    <button class="btn btn--outline" id="exportToolResults" style="display: none;">
+                        <i class="fas fa-download"></i>
+                        Exportar PDF/JSON
+                    </button>
+                    <button class="btn btn--primary" id="executeToolBtn">
+                        <i class="fas fa-play"></i>
+                        Ejecutar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Creation Modal -->
+        <div class="modal hidden" id="reportModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Crear Nuevo Reporte</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nombre del Reporte</label>
+                        <input type="text" id="reportName" class="form-control"
+                            placeholder="Ej: An├ílisis de Seguridad Q4 2024">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Reporte</label>
+                        <select id="reportType" class="form-control">
+                            <option value="executive">Ejecutivo</option>
+                            <option value="technical">T├®cnico</option>
+                            <option value="investigation">Investigaci├│n</option>
+                            <option value="compliance">Cumplimiento</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fuentes de Datos</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="threats" checked>
+                                <span class="checkmark"></span>
+                                Amenazas Detectadas
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="analysis" checked>
+                                <span class="checkmark"></span>
+                                An├ílisis IA
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="monitoring">
+                                <span class="checkmark"></span>
+                                Datos de Monitoreo
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="investigations">
+                                <span class="checkmark"></span>
+                                Investigaciones
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline modal-close">Cancelar</button>
+                    <button class="btn btn--primary" id="generateReportBtn">
+                        <i class="fas fa-file-pdf"></i>
+                        Generar Reporte
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Target Modal -->
+        <div class="modal hidden" id="addTargetModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>A├▒adir Objetivo de Monitoreo</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Objetivo</label>
+                        <input type="text" id="targetInput" class="form-control" placeholder="Dominio, IP, Email...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tipo de Monitoreo</label>
+                        <select id="monitoringType" class="form-control">
+                            <option value="web">Web Monitoring</option>
+                            <option value="email">Email Monitoring</option>
+                            <option value="domain">Domain Monitoring</option>
+                            <option value="ssl">SSL Certificate Monitoring</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Frecuencia</label>
+                        <select id="monitoringFrequency" class="form-control">
+                            <option value="5min">Cada 5 minutos</option>
+                            <option value="hourly">Cada hora</option>
+                            <option value="daily">Diario</option>
+                            <option value="weekly">Semanal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Alertas</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="changes" checked>
+                                <span class="checkmark"></span>
+                                Cambios detectados
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="downtime">
+                                <span class="checkmark"></span>
+                                Tiempo de inactividad
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" value="security">
+                                <span class="checkmark"></span>
+                                Alertas de seguridad
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline modal-close">Cancelar</button>
+                    <button class="btn btn--primary" id="addTargetConfirmBtn">
+                        <i class="fas fa-plus"></i>
+                        A├▒adir Target
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Configuration Modal -->
+        <div class="modal hidden" id="apiModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="apiModalTitle">Configurar API</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nombre de la API</label>
+                        <input type="text" id="apiName" class="form-control" placeholder="Ej: VirusTotal">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Endpoint</label>
+                        <input type="url" id="apiEndpoint" class="form-control" placeholder="https://api.example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">API Key</label>
+                        <input type="password" id="apiKey" class="form-control" placeholder="Tu clave API">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">L├¡mite diario</label>
+                        <input type="number" id="apiLimit" class="form-control" value="1000" min="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline modal-close">Cancelar</button>
+                    <button class="btn btn--outline" id="testApiBtn">
+                        <i class="fas fa-vial"></i>
+                        Probar Conexi├│n
+                    </button>
+                    <button class="btn btn--primary" id="saveApiBtn">
+                        <i class="fas fa-save"></i>
+                        Guardar API
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Modal -->
+        <div class="modal hidden" id="notificationsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Centro de Notificaciones</h3>
+                    <button class="modal-close"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" id="notificationsModalBody">
+                    <div class="notifications-list" id="notificationsList">
+                        <!-- Notifications will be populated here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn--outline" id="markAllReadBtn">
+                        <i class="fas fa-check-double"></i>
+                        Marcar Todo Le├¡do
+                    </button>
+                    <button class="btn btn--outline modal-close">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
