@@ -2570,6 +2570,23 @@ window.deleteMonitor = function(id) {
   showNotification('Objetivo eliminado del monitoreo', 'info');
 };
 
+const configBtn = document.getElementById('configAlertsBtn');
+  if (configBtn) {
+    configBtn.onclick = () => {
+      // Intentamos abrir el modal de configuración si existe
+      if (typeof openModal === 'function') {
+        showNotification('⚙️ Accediendo al panel de alertas críticas...', 'info');
+        // Si tienes una sección de configuración, la activamos
+        setTimeout(() => {
+            const settingsTab = document.querySelector('[data-section="settings"]');
+            if (settingsTab) settingsTab.click();
+        }, 1000);
+      } else {
+        alert("Módulo de Configuración en mantenimiento. Usa el Panel General.");
+      }
+    };
+  }
+
 // ==========================================
 // END MONITORING SECTION
 // ==========================================
@@ -2599,28 +2616,51 @@ function initializeMonitoringCharts() {
       }
     });
   }
-
-  // --- Gráfico de Distribución Geográfica ---
+  // Opcional: Esto hace que los datos parezcan "vivos" cada vez que entras
+const lineChart = Chart.getChart("threatsHourChart");
+if (lineChart) {
+    lineChart.data.datasets[0].data = lineChart.data.datasets[0].data.map(val => 
+        Math.floor(Math.random() * 10) + 1
+    );
+    lineChart.update();
+}
+  // --- Gráfico de Distribución Geográfica Continental ---
   const geoCtx = document.getElementById('geoDistributionChart');
   if (geoCtx) {
     new Chart(geoCtx, {
       type: 'doughnut',
       data: {
-        labels: ['USA', 'China', 'Russia', 'Europe', 'Otros'],
+        labels: ['Europa', 'América', 'Asia', 'África', 'Oceanía'],
         datasets: [{
-          data: [35, 25, 20, 15, 5],
-          backgroundColor: ['#00ff81', '#00d16d', '#00a355', '#00753d', '#004725'],
+          data: [30, 25, 20, 15, 10], // Porcentajes simulados
+          backgroundColor: [
+            '#00ff81', // Europa (Verde Neón)
+            '#00d1ff', // América (Azul Ciano)
+            '#ff006e', // Asia (Magenta Alerta)
+            '#f1c40f', // África (Amarillo Oro)
+            '#9b59b6'  // Oceanía (Púrpura)
+          ],
+          hoverOffset: 10,
           borderWidth: 0
         }]
       },
       options: { 
         responsive: true, 
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'right', labels: { color: '#ccc', font: { size: 10 } } } }
+        plugins: { 
+          legend: { 
+            position: 'right', 
+            labels: { 
+              color: '#888', 
+              usePointStyle: true,
+              font: { size: 11, family: 'monospace' } 
+            } 
+          } 
+        },
+        cutout: '70%' // Lo hace más fino y elegante
       }
     });
   }
-}
 
 // Funciones para los botones de control
 document.getElementById('configAlertsBtn').onclick = () => {
