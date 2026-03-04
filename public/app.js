@@ -2093,7 +2093,6 @@ async function executeInlineTool(toolData) {
       case 'IP Blacklist Check':
         endpoint = `/api/ipinfo?ip=${encodeURIComponent(params.ip)}`; break;
       case 'URL Scanner':
-      case 'HTTP Headers':
         endpoint = `/api/virustotal?url=${encodeURIComponent(params.url)}`; break;
       case 'Domain Reputation':
         endpoint = `/api/virustotal?url=${encodeURIComponent(params.domain)}`; break;
@@ -2101,6 +2100,23 @@ async function executeInlineTool(toolData) {
         endpoint = `/api/hibp?email=${encodeURIComponent(params.email)}`; break;
       case 'Hash Analyzer':
         endpoint = `/api/virustotal?hash=${encodeURIComponent(params.hash)}`; break;
+      // ── New real API endpoints ──
+      case 'SSL Checker':
+        endpoint = `/api/ssl?domain=${encodeURIComponent(params.domain)}`; break;
+      case 'Port Scanner':
+        endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
+      case 'HTTP Headers':
+        endpoint = `/api/headers?url=${encodeURIComponent(params.url)}`; break;
+      case 'Email Verifier':
+        endpoint = `/api/emailverify?email=${encodeURIComponent(params.email)}`; break;
+      case 'SPF/DKIM Check':
+        endpoint = `/api/spfdkim?domain=${encodeURIComponent(params.domain)}`; break;
+      case 'Subdomain Finder':
+        endpoint = `/api/subdomains?domain=${encodeURIComponent(params.domain)}`; break;
+      case 'Traceroute':
+        endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
+      case 'Shodan Search':
+        endpoint = `/api/portscan?target=${encodeURIComponent(params.query)}`; break;
       default:
         await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
         result = simulateToolResult(toolData, params);
@@ -2450,7 +2466,7 @@ function closeAllModals() {
 
 function initializeMonitoringSection() {
   const addTargetBtn = document.getElementById('addTargetBtn');
-  
+
   // Cargamos datos iniciales si no existen
   if (!localStorage.getItem('osint_monitoring')) {
     OSINTApp.monitoring = [
@@ -2468,7 +2484,7 @@ function initializeMonitoringSection() {
   setupMonitoringControls();
 }
 
-window.showAddMonitorModal = function() {
+window.showAddMonitorModal = function () {
   const target = prompt('Introduce el objetivo (IP/Dominio):');
   if (!target) return;
 
@@ -2492,10 +2508,10 @@ function renderMonitoringList() {
   if (!listContainer) return;
 
   listContainer.innerHTML = OSINTApp.monitoring.map(t => `
-    <div class="target-item" style="border-left:4px solid ${t.threatLevel==='error'?'#ff4646':'#00ff81'}; padding:15px; background:rgba(255,255,255,0.03); margin-bottom:10px; border-radius:8px;">
+    <div class="target-item" style="border-left:4px solid ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}; padding:15px; background:rgba(255,255,255,0.03); margin-bottom:10px; border-radius:8px;">
       <div style="display:flex; justify-content:space-between;">
         <strong>${t.name}</strong>
-        <span style="color:${t.threatLevel==='error'?'#ff4646':'#00ff81'}">${t.status.toUpperCase()}</span>
+        <span style="color:${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}">${t.status.toUpperCase()}</span>
       </div>
       <p style="font-size:0.85rem; color:#00ff81; margin-top:5px;"><i><i class="fas fa-robot"></i> ${t.aiInsight}</i></p>
       <div style="text-align:right;"><button onclick="deleteMonitor(${t.id})" style="background:none; border:none; color:#ff4646; cursor:pointer;"><i class="fas fa-trash"></i></button></div>
@@ -2513,11 +2529,11 @@ function simulateAIWatcher(id) {
     OSINTApp.monitoring[idx].aiInsight = isThreat ? "⚠️ Alerta IA: Tráfico anómalo detectado." : "✅ Gemini: Activo seguro.";
     localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
     renderMonitoringList();
-    if(isThreat) showNotification('🚨 Amenaza en el Vigía', 'error');
+    if (isThreat) showNotification('🚨 Amenaza en el Vigía', 'error');
   }, 4000);
 }
 
-window.deleteMonitor = function(id) {
+window.deleteMonitor = function (id) {
   OSINTApp.monitoring = OSINTApp.monitoring.filter(t => t.id !== id);
   localStorage.setItem('osint_monitoring', JSON.stringify(OSINTApp.monitoring));
   renderMonitoringList();
@@ -2566,9 +2582,9 @@ function setupMonitoringControls() {
   }
   const configBtn = document.getElementById('configAlertsBtn');
   if (configBtn) {
-    configBtn.onclick = () => { 
+    configBtn.onclick = () => {
       const settingsTab = document.querySelector('[data-section="settings"]');
-      if (settingsTab) settingsTab.click(); 
+      if (settingsTab) settingsTab.click();
     };
   }
 }

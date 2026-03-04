@@ -568,55 +568,55 @@
                     <div class="monitoring-header">
                         <h2><i class="fas fa-eye text-primary"></i> Monitoreo Continuo</h2>
                         <p>Sistema de inteligencia activa con veredictos de Gemini IA</p>
-                </div>
+                    </div>
 
-                <div class="monitoring-dashboard">
-                    <div class="monitoring-charts">
-                        <div class="chart-card">
-                            <h4>Amenazas por Hora</h4>
-                            <div class="chart-container" style="position: relative; height: 200px;">
-                                <canvas id="threatsHourChart"></canvas>
+                    <div class="monitoring-dashboard">
+                        <div class="monitoring-charts">
+                            <div class="chart-card">
+                                <h4>Amenazas por Hora</h4>
+                                <div class="chart-container" style="position: relative; height: 200px;">
+                                    <canvas id="threatsHourChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <h4>Distribución Geográfica</h4>
+                                <div class="chart-container" style="position: relative; height: 200px;">
+                                    <canvas id="geoDistributionChart"></canvas>
+                                </div>
                             </div>
                         </div>
-                        <div class="chart-card">
-                            <h4>Distribución Geográfica</h4>
-                            <div class="chart-container" style="position: relative; height: 200px;">
-                                <canvas id="geoDistributionChart"></canvas>
+
+                        <div class="monitoring-controls">
+                            <div class="control-panel">
+                                <h4>Panel de Control</h4>
+                                <button class="btn btn--primary btn--full-width" onclick="showAddMonitorModal()">
+                                    <i class="fas fa-plus"></i> Añadir Objetivo
+                                </button>
+                                <button class="btn btn--outline btn--full-width" id="configAlertsBtn">
+                                    <i class="fas fa-bell"></i> Configurar Alertas
+                                </button>
+                                <button class="btn btn--outline btn--full-width" id="exportMonitoringData">
+                                    <i class="fas fa-download"></i> Exportar Datos
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    <div class="monitoring-controls">
-                        <div class="control-panel">
-                            <h4>Panel de Control</h4>
-                            <button class="btn btn--primary btn--full-width" onclick="showAddMonitorModal()">
-                                <i class="fas fa-plus"></i> Añadir Objetivo
-                            </button>
-                            <button class="btn btn--outline btn--full-width" id="configAlertsBtn">
-                                <i class="fas fa-bell"></i> Configurar Alertas
-                            </button>
-                            <button class="btn btn--outline btn--full-width" id="exportMonitoringData">
-                                <i class="fas fa-download"></i> Exportar Datos
-                            </button>
+                    <div class="monitoring-targets">
+                        <h3>Targets Monitoreados</h3>
+                        <div class="targets-list" id="monitoringTargetsList">
+                            <div class="empty-state">
+                                <p>No hay objetivos activos. Añade una IP o Dominio para comenzar.</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="monitoring-targets">
-                    <h3>Targets Monitoreados</h3>
-                    <div class="targets-list" id="monitoringTargetsList">
-                        <div class="empty-state">
-                            <p>No hay objetivos activos. Añade una IP o Dominio para comenzar.</p>
+                    <div class="recent-alerts">
+                        <h3>Alertas Recientes de IA</h3>
+                        <div class="alerts-list" id="recentAlertsList">
                         </div>
                     </div>
-                </div>
-
-                <div class="recent-alerts">
-                    <h3>Alertas Recientes de IA</h3>
-                    <div class="alerts-list" id="recentAlertsList">
-                        </div>
-                </div>
-            </section>
+                </section>
                 
                 <!-- Settings Section -->
                 <section id="settings-section" class="content-section">
@@ -1008,27 +1008,6 @@
             </div>
         </div>
 
-        <!-- Notifications Modal -->
-        <div class="modal hidden" id="notificationsModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Centro de Notificaciones</h3>
-                    <button class="modal-close"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="modal-body" id="notificationsModalBody">
-                    <div class="notifications-list" id="notificationsList">
-                        <!-- Notifications will be populated here -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn--outline" id="markAllReadBtn">
-                        <i class="fas fa-check-double"></i>
-                        Marcar Todo Leído
-                    </button>
-                    <button class="btn btn--outline modal-close">Cerrar</button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Notification Container -->
