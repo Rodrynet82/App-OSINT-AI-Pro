@@ -153,47 +153,75 @@
   --neon-purple: #9d00ff;
 }
 
-/* Dark mode colors */
+/* Dark mode colors - System Preference */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-gray-400-rgb: 119, 124, 124;
-    --color-teal-300-rgb: 50, 184, 198;
-    --color-gray-300-rgb: 167, 169, 169;
-    --color-gray-200-rgb: 245, 245, 245;
-    --color-bg-1: rgba(29, 78, 216, 0.15);
-    --color-bg-2: rgba(180, 83, 9, 0.15);
-    --color-bg-3: rgba(21, 128, 61, 0.15);
-    --color-bg-4: rgba(185, 28, 28, 0.15);
-    --color-bg-5: rgba(107, 33, 168, 0.15);
-    --color-bg-6: rgba(194, 65, 12, 0.15);
-    --color-bg-7: rgba(190, 24, 93, 0.15);
-    --color-bg-8: rgba(8, 145, 178, 0.15);
     --color-background: var(--color-charcoal-700);
     --color-surface: var(--color-charcoal-800);
     --color-text: var(--color-gray-200);
     --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
     --color-primary: var(--color-teal-300);
-    --color-primary-hover: var(--color-teal-400);
-    --color-primary-active: var(--color-teal-800);
-    --color-secondary: rgba(var(--color-gray-400-rgb), 0.15);
-    --color-secondary-hover: rgba(var(--color-gray-400-rgb), 0.25);
-    --color-secondary-active: rgba(var(--color-gray-400-rgb), 0.3);
     --color-border: rgba(var(--color-gray-400-rgb), 0.3);
-    --color-error: var(--color-red-400);
-    --color-success: var(--color-teal-300);
-    --color-warning: var(--color-orange-400);
-    --color-info: var(--color-gray-300);
-    --color-focus-ring: rgba(var(--color-teal-300-rgb), 0.4);
-    --color-btn-primary-text: var(--color-slate-900);
-    --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
-    --color-card-border-inner: rgba(var(--color-gray-400-rgb), 0.15);
-    --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.15);
-    --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
-    --color-success-rgb: var(--color-teal-300-rgb);
-    --color-error-rgb: var(--color-red-400-rgb);
-    --color-warning-rgb: var(--color-orange-400-rgb);
-    --color-info-rgb: var(--color-gray-300-rgb);
   }
+}
+
+/* Explicit Theme Overrides - Force Class */
+:root.light-mode {
+  --color-background: #fdfbf7;
+  --color-surface: #ffffff;
+  --color-text: #0f172a;
+  --color-text-secondary: #475569;
+  --color-primary: #0d9488;
+  --color-primary-hover: #0f766e;
+  --color-border: rgba(15, 23, 42, 0.1);
+  --color-card-border: rgba(15, 23, 42, 0.08);
+  --color-btn-primary-text: #ffffff;
+  --color-select-caret: #0f172a;
+  --cas-glow: rgba(13, 148, 136, 0.2);
+}
+
+body.light-mode {
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+body.light-mode .sidebar {
+  background: #ffffff;
+  border-right: 1px solid var(--color-border);
+}
+
+body.light-mode .nav-item {
+  color: #475569;
+}
+
+body.light-mode .nav-item:hover,
+body.light-mode .nav-item.active {
+  background: rgba(13, 148, 136, 0.05);
+  color: var(--color-primary);
+}
+
+body.light-mode .dashboard-card {
+  background: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--color-border);
+}
+
+body.light-mode .main-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--color-border);
+}
+
+:root.dark-mode {
+  --color-background: var(--color-charcoal-700);
+  --color-surface: var(--color-charcoal-800);
+  --color-text: var(--color-gray-200);
+  --color-text-secondary: rgba(var(--color-gray-300-rgb), 0.7);
+  --color-primary: var(--color-teal-300);
+  --color-primary-hover: var(--color-teal-400);
+  --color-border: rgba(var(--color-gray-400-rgb), 0.3);
+  --color-card-border: rgba(var(--color-gray-400-rgb), 0.2);
+  --color-btn-primary-text: var(--color-slate-900);
+  --color-select-caret: rgba(var(--color-gray-200-rgb), 0.8);
 }
 
 /* Base styles */
@@ -491,6 +519,75 @@ pre code {
 
 .form-group {
   margin-bottom: var(--space-16);
+}
+
+/* Custom Checkbox Styles */
+.checkbox-label {
+  display: block;
+  position: relative;
+  padding-left: 30px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+  color: var(--color-text);
+  line-height: 20px;
+}
+
+.checkbox-label input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 26px;
+  width: 26px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+:root.light-mode .checkmark {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.checkbox-label:hover input~.checkmark {
+  border-color: var(--color-primary);
+  background-color: #334155;
+}
+
+.checkbox-label input:checked~.checkmark {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 10px rgba(13, 148, 136, 0.3);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-label input:checked~.checkmark:after {
+  display: block;
+}
+
+.checkbox-label .checkmark:after {
+  left: 9px;
+  top: 3px;
+  width: 7px;
+  height: 14px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
 }
 
 /* Main App */
@@ -2804,6 +2901,17 @@ pre code {
 
 .setting-group {
   margin-bottom: var(--space-20);
+  padding: var(--space-16);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+:root.light-mode .setting-group {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .setting-group label {
@@ -2836,32 +2944,7 @@ pre code {
   display: none;
 }
 
-.checkmark {
-  width: 20px;
-  height: 20px;
-  background: var(--color-secondary);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  position: relative;
-  transition: all var(--duration-fast) var(--ease-standard);
-  flex-shrink: 0;
-}
-
-.checkbox-label input:checked+.checkmark {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.checkbox-label input:checked+.checkmark::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-}
+/* Checkmarks standarsized at the top of the file - deleted conflicting classes */
 
 .checkbox-group {
   display: flex;
@@ -4080,23 +4163,26 @@ pre code {
 
 /* Corrección para modales que se desbordan */
 .modal-content {
-    max-height: 90vh; /* Máximo 90% de la altura de la pantalla */
-    overflow-y: auto;  /* Si el contenido es largo, permite scroll interno */
-    display: flex;
-    flex-direction: column;
+  max-height: 90vh;
+  /* Máximo 90% de la altura de la pantalla */
+  overflow-y: auto;
+  /* Si el contenido es largo, permite scroll interno */
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding-right: 10px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
 /* Scrollbar estilo Cyberpunk para el modal */
 .modal-body::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
+
 .modal-body::-webkit-scrollbar-thumb {
-    background: var(--color-primary);
-    border-radius: 10px;
+  background: var(--color-primary);
+  border-radius: 10px;
 }

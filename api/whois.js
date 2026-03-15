@@ -1,13 +1,27 @@
+import { validateApiKey } from './_utils/validation.js';
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-  
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, x-antigravity-key');
+
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
+  }
+
+  // Pre-flight check / validation
+  const clientKey = req.headers['x-antigravity-key'];
+  const validation = validateApiKey(clientKey);
+
+  if (!validation.isValid) {
+    return res.status(401).json({
+      success: false,
+      error: 'Acceso denegado. Clave Antigravity inválida o ausente.',
+      code: 'UNAUTHORIZED'
+    });
   }
 
   const { domain } = req.query;
@@ -24,7 +38,7 @@ export default async function handler(req, res) {
 
   try {
     const apiKey = process.env.WHOIS_API_KEY || 'demo';
-    
+
     const response = await fetch(
       `https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${apiKey}&domainName=${encodeURIComponent(domain)}&outputFormat=JSON&slFormat=1`,
       {

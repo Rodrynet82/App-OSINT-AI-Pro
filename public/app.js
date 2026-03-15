@@ -1,5 +1,22 @@
 // OSINT AI Pro Platform - Complete Implementation V3.0
 // Sistema completo con login, dashboard, mapa Kaspersky, 19 pruebas, exportación PDF/JSON, y más
+// Global Translations System
+const translations = {
+  en: {
+    nav: { dashboard: "Dashboard", intelligence: "AI Intelligence", tools: "Tool Suite", reports: "Reports", monitoring: "AI Sentry", settings: "Settings" },
+    titles: { dashboard: "Control Center", intelligence: "Intelligence Hub", tools: "OSINT Tool Suite", reports: "Reports & Analysis", monitoring: "Real-time Monitoring", settings: "System Settings" },
+    status: { ai_online: "AI Online | Premium Mode", connecting: "Connecting...", disconnected: "Disconnected" },
+    buttons: { quick_scan: "Quick Analysis", logout: "Log Out", save: "Save Settings", cancel: "Cancel" },
+    settings: { api_config_btn: "Configure", api_config_key_prompt: "Set API Key for", api_updated_success: "Configuration saved for", api_delete_confirm: "Delete API" }
+  },
+  es: {
+    nav: { dashboard: "Panel de Control", intelligence: "Investigación IA", tools: "Herramientas", reports: "Reportes", monitoring: "Vigía IA", settings: "Configuración" },
+    titles: { dashboard: "Panel de Control", intelligence: "Centro de Inteligencia", tools: "Suite de Herramientas", reports: "Reportes y Análisis", monitoring: "Vigía en Tiempo Real", settings: "Ajustes del Sistema" },
+    status: { ai_online: "IA Activa | Modo Premium", connecting: "Conectando...", disconnected: "Desconectado" },
+    buttons: { quick_scan: "Análisis Rápido", logout: "Cerrar Sesión", save: "Guardar Cambios", cancel: "Cancelar" },
+    settings: { api_config_btn: "Configurar", api_config_key_prompt: "Introduce la clave para", api_updated_success: "Configuración guardada para", api_delete_confirm: "¿Eliminar la API" }
+  }
+};
 
 // Global application state
 const OSINTApp = {
@@ -36,7 +53,7 @@ const OSINTApp = {
 const applicationData = {
   user_credentials: {
     email: "admin@osint-ai-pro.com",
-    password: "OSINTPro2025!",
+    password: "AdminPro2026!",
     role: "premium"
   },
   kaspersky_map_style: {
@@ -111,10 +128,16 @@ const applicationData = {
     { name: "OpenAI GPT", endpoint: "https://api.openai.com/v1", status: "connected", calls_today: 47, limit: 1000, key: "sk-..." },
     { name: "VirusTotal", endpoint: "https://www.virustotal.com/vtapi/v2", status: "disconnected", calls_today: 0, limit: 500, key: "" },
     { name: "Shodan", endpoint: "https://api.shodan.io", status: "connected", calls_today: 156, limit: 1000, key: "xyz123..." },
-    { name: "IPinfo", endpoint: "https://ipinfo.io", status: "connected", calls_today: 89, limit: 500, key: "abc456..." }
+    { name: "IPinfo", endpoint: "https://ipinfo.io", status: "connected", calls_today: 89, limit: 500, key: "abc456..." },
+    { name: "Antigravity AI Pro", endpoint: "http://localhost:3000/api", status: "connected", calls_today: 0, limit: 10000, key: "ag_pro_live_9k2m8L4n7P0vXy1z" }
   ]
 };
 
+// Load saved API configs if any
+const savedApis = localStorage.getItem('osint_api_configs');
+if (savedApis) {
+  applicationData.api_configurations = JSON.parse(savedApis);
+}
 // Test definitions for 19 analysis tests
 const analysisTests = [
   { name: "WHOIS Lookup", description: "Información de registro del dominio", category: "basic" },
@@ -514,6 +537,7 @@ function openModal(modalId) {
   const overlay = document.getElementById('modalOverlay');
   if (modal && overlay) {
     overlay.classList.remove('hidden');
+    overlay.classList.add('active'); // IMPORTANTE: El CSS requiere la clase active
     modal.classList.remove('hidden');
     modal.style.opacity = '0'; modal.style.transform = 'translateY(-20px)';
     requestAnimationFrame(() => {
@@ -525,14 +549,14 @@ function openModal(modalId) {
 
 function closeAllModals() {
   const overlay = document.getElementById('modalOverlay');
-  if (overlay) overlay.classList.add('hidden');
+  if (overlay) {
+    overlay.classList.add('hidden');
+    overlay.classList.remove('active');
+  }
   document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'));
 }
 
-window.viewReportDetails = function (reportId) {
-  showNotification('Cargando detalles del reporte...', 'info');
-  setTimeout(() => { openModal('reportDetailsModal'); }, 500);
-}
+
 
 function initializeSettingsSection() {
   console.log('⚙️ Inicializando sección de configuración...');
@@ -548,16 +572,203 @@ function initializeSettingsSection() {
     });
   });
 
+  // Cargar datos actuales en los inputs
+  const settingsLangSelect = document.getElementById('languageSettingSelect');
+  if (settingsLangSelect) settingsLangSelect.value = OSINTApp.settings.language;
+
+  const timeoutInput = document.getElementById('analysisTimeout');
+  if (timeoutInput) timeoutInput.value = OSINTApp.settings.analysisTimeout;
+
+  const notifToggle = document.getElementById('notificationsEnabled');
+  if (notifToggle) notifToggle.checked = OSINTApp.settings.notifications;
+
   const themeSelect = document.getElementById('themeSelect');
   if (themeSelect) {
-    themeSelect.addEventListener('change', (e) => {
-      const mode = e.target.value;
-      if (mode === 'dark') { document.body.classList.remove('light-mode'); localStorage.setItem('osint_theme', 'dark'); }
-      else if (mode === 'light') { document.body.classList.add('light-mode'); localStorage.setItem('osint_theme', 'light'); }
-      else { document.body.classList.remove('light-mode'); localStorage.removeItem('osint_theme'); }
-      showNotification('Tema actualizado', 'success');
+    themeSelect.value = OSINTApp.settings.theme || 'auto';
+  }
+
+  // Handlers para guardar
+  document.getElementById('saveGeneralSettings')?.addEventListener('click', () => {
+    const selectedLang = document.getElementById('languageSettingSelect')?.value;
+    if (selectedLang) setLanguage(selectedLang);
+
+    OSINTApp.settings.analysisTimeout = parseInt(document.getElementById('analysisTimeout').value);
+    OSINTApp.settings.notifications = document.getElementById('notificationsEnabled').checked;
+
+    localStorage.setItem('user-preferences', JSON.stringify(OSINTApp.settings));
+    showNotification('✅ Configuración general guardada', 'success');
+  });
+
+  // Renderizar listas dinámicas
+  renderNotificationSettings();
+  renderApiSettings();
+
+  document.getElementById('saveNotificationSettings')?.addEventListener('click', () => {
+    showNotification('✅ Configuración de notificaciones guardada', 'success');
+  });
+
+  document.getElementById('addApiBtn')?.addEventListener('click', () => {
+    const name = prompt('Nombre del servicio API:');
+    if (name) {
+      const endpoint = prompt('URL del EndPoint (opcional):', 'https://api.service.com/v1');
+      const newApi = {
+        name: name,
+        endpoint: endpoint || 'https://api.external.service/v1',
+        status: 'disconnected',
+        calls_today: 0,
+        limit: 5000,
+        key: ''
+      };
+      if (!applicationData.api_configurations) applicationData.api_configurations = [];
+      applicationData.api_configurations.push(newApi);
+      localStorage.setItem('osint_api_configs', JSON.stringify(applicationData.api_configurations));
+      renderApiSettings();
+      showNotification(`✅ API ${name} añadida correctamente`, 'success');
+    }
+  });
+
+  document.getElementById('lastLogin').textContent = new Date().toLocaleString();
+
+  // Sync Language select in settings
+  const settingsLanguageSelect = document.getElementById('languageSettingSelect');
+  if (settingsLanguageSelect) {
+    settingsLanguageSelect.value = OSINTApp.settings.language || 'es';
+    settingsLanguageSelect.addEventListener('change', (e) => {
+      setLanguage(e.target.value);
     });
   }
+
+  // Account buttons activation
+  const exportBtn = document.getElementById('exportUserDataBtn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => {
+      showNotification('📥 Preparando exportación completa de datos de usuario...', 'info');
+      setTimeout(() => {
+        alert('Exportación de datos (JSON/PDF) lista para descargar. Esta función requiere conexión a base de datos segura.');
+      }, 1000);
+    });
+  }
+
+  const changePwdBtn = document.getElementById('changePasswordBtn');
+  if (changePwdBtn) {
+    changePwdBtn.addEventListener('click', () => {
+      const currentPwd = prompt('🔐 Introduce tu contraseña actual (Demo: dejar en blanco o poner cualquier cosa):');
+      if (currentPwd !== null) {
+        const newPwd = prompt('🟢 Introduce tu NUEVA contraseña (mínimo 8 caracteres):');
+        if (newPwd && newPwd.length >= 8) {
+          const confirmPwd = prompt('🔁 Confirma tu NUEVA contraseña:');
+          if (newPwd === confirmPwd) {
+            showNotification('🔐 Contraseña de la cuenta actualizada exitosamente', 'success');
+          } else {
+            showNotification('❌ Las contraseñas no coinciden', 'error');
+          }
+        } else if (newPwd) {
+          showNotification('⚠️ La contraseña es demasiado corta', 'warning');
+        }
+      }
+    });
+  }
+
+  const deleteUserBtn = document.getElementById('deleteUserBtn');
+  if (deleteUserBtn) {
+    deleteUserBtn.addEventListener('click', () => {
+      const confirmText = prompt('Esta acción es irreversible y borrará todo. Escribe "ELIMINAR" para confirmar:');
+      if (confirmText === 'ELIMINAR') {
+        showNotification('🗑️ Iniciando protocolo de borrado de cuenta...', 'error');
+        setTimeout(() => {
+          logout();
+        }, 2000);
+      } else if (confirmText !== null) {
+        showNotification('ℹ️ Operación cancelada. Texto incorrecto.', 'info');
+      }
+    });
+  }
+}
+
+function renderNotificationSettings() {
+  const container = document.getElementById('notificationSettingsList');
+  if (!container) return;
+
+  container.innerHTML = applicationData.notification_settings.map(s => `
+    <div class="setting-group" style="padding: 15px; background: rgba(255,255,255,0.03); border-radius: 8px; margin-bottom: 10px; border: 1px solid rgba(255,255,255,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h5 style="margin: 0; color: #f8fafc;">${s.name}</h5>
+                <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">${s.description}</p>
+            </div>
+            <label class="checkbox-label" style="margin: 0;">
+                <input type="checkbox" ${s.enabled ? 'checked' : ''}>
+                <span class="checkmark"></span>
+            </label>
+        </div>
+        <div style="margin-top: 10px; font-size: 10px; color: #38bdf8;">Frecuencia: ${s.frequency}</div>
+    </div>
+  `).join('');
+}
+
+function renderApiSettings() {
+  const container = document.getElementById('apiStatusGrid');
+  if (!container) return;
+
+  container.innerHTML = applicationData.api_configurations.map((api, index) => `
+    <div class="api-card" style="padding: 15px; background: rgba(30, 41, 59, 0.4); border-radius: 10px; border: 1px solid ${api.status === 'connected' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(148, 163, 184, 0.1)'}; transition: all 0.3s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+            <div style="font-weight: 600; color: #f8fafc;">${api.name}</div>
+            <div class="api-status-dot" data-index="${index}" style="width: 10px; height: 10px; border-radius: 50%; background: ${api.status === 'connected' ? '#10b981' : '#94a3b8'}; box-shadow: 0 0 10px ${api.status === 'connected' ? '#10b981' : 'transparent'}; cursor: pointer;" title="${api.status === 'connected' ? 'Desconectado' : 'Conectar'}"></div>
+        </div>
+        <div style="font-size: 11px; color: #94a3b8; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 8px;">${api.endpoint}</div>
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b;">
+            <span>Llamadas: ${api.calls_today}/${api.limit}</span>
+            <span style="color: ${api.status === 'connected' ? '#10b981' : '#94a3b8'}">${api.status.toUpperCase()}</span>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="btn btn--sm btn--outline api-config-btn" data-index="${index}" style="flex: 1; font-size: 10px; height: 28px;">${translations[OSINTApp.settings.language].settings.api_config_btn}</button>
+            <button class="btn btn--sm btn--danger delete-api-btn" data-index="${index}" style="width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;"><i class="fas fa-trash"></i></button>
+        </div>
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.api-status-dot').forEach(dot => {
+    dot.addEventListener('click', function () {
+      const idx = this.dataset.index;
+      const api = applicationData.api_configurations[idx];
+      api.status = api.status === 'connected' ? 'disconnected' : 'connected';
+      localStorage.setItem('osint_api_configs', JSON.stringify(applicationData.api_configurations));
+      renderApiSettings();
+      showNotification(`${api.name}: ${api.status.toUpperCase()}`, 'info');
+    });
+  });
+
+  container.querySelectorAll('.api-config-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const idx = this.dataset.index;
+      const api = applicationData.api_configurations[idx];
+      const lang = OSINTApp.settings.language;
+      const newKey = prompt(`${translations[lang].settings.api_config_key_prompt} ${api.name}:`, api.key || '');
+      if (newKey !== null) {
+        api.key = newKey;
+        api.status = 'connected';
+        localStorage.setItem('osint_api_configs', JSON.stringify(applicationData.api_configurations));
+        renderApiSettings();
+        showNotification(`${translations[lang].settings.api_updated_success} ${api.name}`, 'success');
+      }
+    });
+  });
+
+  container.querySelectorAll('.delete-api-btn').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const idx = this.dataset.index;
+      const api = applicationData.api_configurations[idx];
+      const lang = OSINTApp.settings.language;
+      if (confirm(`${translations[lang].settings.api_delete_confirm} "${api.name}"?`)) {
+        applicationData.api_configurations.splice(idx, 1);
+        localStorage.setItem('osint_api_configs', JSON.stringify(applicationData.api_configurations));
+        renderApiSettings();
+        showNotification(`🗑️ API ${api.name} eliminada`, 'warning');
+      }
+    });
+  });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -589,15 +800,16 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeReportsSection();
     initializeMonitoringSection();
     initializeSettingsSection();
-    initializeModals();
-    initializeNotificationSystem();
+    // initializeModals(); // Removed, generic modal listeners handle this
     initializeAnalysisIA();
-    initializeThemeToggle();
+    initializeThemeSystem();
+    initializeLanguageSystem();
     initializeDashboardShortcuts();
 
     // Start real-time updates if logged in
     if (OSINTApp.isLoggedIn) {
-      startRealTimeUpdates();
+      // startRealTimeUpdates(); // Removed, handled within initializeDashboard -> startLiveMetrics
+
       setTimeout(() => initializeKasperskyMap(), 1000);
     }
 
@@ -747,12 +959,7 @@ function initializeSidebar() {
   const langSelect = document.getElementById('languageSelect');
   if (langSelect) {
     langSelect.addEventListener('change', function (e) {
-      const newLang = e.target.value;
-      OSINTApp.currentLanguage = newLang;
-      showNotification(newLang === 'es' ? '🇪🇸 Idioma cambiado a Español' : '🇺🇸 Language changed to English', 'info');
-      // Update setting global variable
-      OSINTApp.settings.language = newLang;
-      localStorage.setItem('user-preferences', JSON.stringify(OSINTApp.settings));
+      setLanguage(e.target.value);
     });
   }
 }
@@ -784,21 +991,32 @@ function initializeHeaderButtons() {
   if (quickScanBtn) {
     quickScanBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      // Ir directo a la sección de Inteligencia sin rellenar la IP
+      const intelligenceNav = document.querySelector('.nav-item[data-section="intelligence"]');
+      if (intelligenceNav) intelligenceNav.click();
+    });
+  }
 
-      const searchInput = document.getElementById('universalSearchInput'); // Changed to new ID
-      if (searchInput) {
-        // Asignar IP default para escaneo rápido si está vacío
-        if (!searchInput.value) searchInput.value = '127.0.0.1';
-      }
-
-      // Ir directo a la sección de Inteligencia donde ocurre el análisis
-      const intelligenceNav = document.querySelector('[data-section="intelligence"]');
+  const networkScanCard = document.getElementById('networkAnalysisCard');
+  if (networkScanCard) {
+    networkScanCard.addEventListener('click', (e) => {
+      e.preventDefault();
+      const intelligenceNav = document.querySelector('.nav-item[data-section="intelligence"]');
       if (intelligenceNav) intelligenceNav.click();
 
-      // Ejecutar la búsqueda directamente
       setTimeout(() => {
-        const searchBtn = document.getElementById('startUniversalSearchBtn'); // Changed to new ID
-        if (searchBtn) searchBtn.click();
+        const searchInput = document.getElementById('universalSearchInput');
+        if (searchInput) {
+          // Intentar obtener IP real libremente, si falla usamos hostname
+          fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => { searchInput.value = data.ip; })
+            .catch(() => { searchInput.value = 'localhost'; })
+            .finally(() => {
+              const searchBtn = document.getElementById('startUniversalSearchBtn');
+              if (searchBtn) searchBtn.click();
+            });
+        }
       }, 500);
     });
   }
@@ -848,11 +1066,11 @@ function initializeClickableMetrics() {
       const metric = e.target.closest('.clickable-metric');
       if (!metric) return;
 
-      e.preventDefault();
-      e.stopPropagation();
-
       const modalId = metric.getAttribute('data-modal');
       if (!modalId) return; // FIX: If no modalId, do nothing (let other listeners handle it)
+
+      e.preventDefault();
+      e.stopPropagation();
 
       console.log('🖱️ CLICK en métrica:', modalId);
       openModal(modalId);
@@ -1133,11 +1351,19 @@ function initializeThreatAlert() {
   if (threatAlert) {
     threatAlert.addEventListener('click', function () {
       showNotification('🔍 Desplazando al Panel de Amenazas', 'info');
-      // Scroll smoothly to the threat feed
-      const mapSection = document.getElementById('threatMap').parentElement.parentElement;
-      if (mapSection) {
-        mapSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Si no estamos en el dashboard, vamos al dashboard primero
+      if (OSINTApp.currentSection !== 'dashboard') {
+        const dashboardNav = document.querySelector('.nav-item[data-section="dashboard"]');
+        if (dashboardNav) dashboardNav.click();
       }
+
+      // Scroll smoothly to the threat feed (darle un pelín de tiempo para que se renderice si cambiamos de tab)
+      setTimeout(() => {
+        const feedSection = document.getElementById('threatFeedFilter');
+        if (feedSection) {
+          feedSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
     });
   }
 }
@@ -1463,6 +1689,50 @@ function initializeKasperskyMap() {
       });
     });
 
+    // Configurar Filtro del Feed de Amenazas
+    const threatFeedFilter = document.getElementById('threatFeedFilter');
+    if (threatFeedFilter) {
+      threatFeedFilter.addEventListener('change', (e) => {
+        window.currentThreatFilter = e.target.value.toLowerCase();
+        const items = document.querySelectorAll('.threat-feed-item');
+        items.forEach(item => {
+          if (window.currentThreatFilter === 'all') {
+            item.style.display = 'flex';
+          } else if (item.classList.contains('threat-' + window.currentThreatFilter)) {
+            item.style.display = 'flex';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // Configurar Botón de Actualizar Mapa
+    const updateMapBtn = document.getElementById('updateMapBtn');
+    if (updateMapBtn) {
+      updateMapBtn.addEventListener('click', function () {
+        const icon = this.querySelector('i');
+        if (icon) {
+          icon.classList.add('fa-spin');
+          setTimeout(() => icon.classList.remove('fa-spin'), 1000);
+        }
+        if (window.threatMapInstance) {
+          const currentPOV = window.threatMapInstance.pointOfView();
+          window.threatMapInstance.pointOfView({
+            lat: (Math.random() - 0.5) * 160,
+            lng: (Math.random() - 0.5) * 360,
+            altitude: 1.5 + Math.random()
+          }, 1500);
+        }
+        showNotification('🌐 Sincronizando telemetría global...', 'info');
+
+        // Forzar inserción de amenazas nuevas rápido
+        for (let i = 0; i < 3; i++) {
+          setTimeout(addRandomThreat, i * 200);
+        }
+      });
+    }
+
     console.log('✅ Kaspersky 3D Map initialized (Globe.gl) with Modal prompts');
 
   } catch (error) {
@@ -1515,13 +1785,28 @@ function addRandomThreat() {
   const threatTypes = applicationData.kaspersky_map_style.threat_types;
   const locations = ['Nueva York', 'Londres', 'Tokio', 'Moscú', 'Beijing', 'São Paulo', 'Berlín', 'París'];
 
-  const randomThreat = threatTypes[Math.floor(Math.random() * threatTypes.length)];
+  let randomThreat;
+  // Si hay filtro activo, intentamos generar una amenaza de ese tipo para que el feed siga moviéndose
+  if (window.currentThreatFilter && window.currentThreatFilter !== 'all') {
+    const specificThreat = threatTypes.find(t => t.name.toLowerCase() === window.currentThreatFilter);
+    randomThreat = specificThreat || threatTypes[Math.floor(Math.random() * threatTypes.length)];
+  } else {
+    randomThreat = threatTypes[Math.floor(Math.random() * threatTypes.length)];
+  }
+
   const randomLocation = locations[Math.floor(Math.random() * locations.length)];
 
   const threatItem = document.createElement('div');
   threatItem.className = `threat-feed-item threat-${randomThreat.name.toLowerCase()}`;
   threatItem.style.borderLeftColor = randomThreat.color;
-  threatItem.style.cursor = 'pointer'; // Make it look clickable
+  threatItem.style.cursor = 'pointer';
+
+  // Ocultar si se generó y no machea el filtro (fallback)
+  if (window.currentThreatFilter && window.currentThreatFilter !== 'all') {
+    if (randomThreat.name.toLowerCase() !== window.currentThreatFilter) {
+      threatItem.style.display = 'none';
+    }
+  }
 
   threatItem.innerHTML = `
     <div class="threat-feed-icon" style="color: ${randomThreat.color};">
@@ -1752,31 +2037,58 @@ function initializeExportButtons() {
       const element = document.getElementById('intelligenceResults');
       if (!element) return;
 
-      setTimeout(async () => {
+      setTimeout(() => {
         try {
           const { jsPDF } = window.jspdf;
-          const canvas = await html2canvas(element, {
-            backgroundColor: '#0f172a',
-            scale: 2,
-            logging: false,
-            useCORS: true
-          });
+          const doc = new jsPDF();
+          const data = OSINTApp.searchResults;
 
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          const imgProps = pdf.getImageProperties(imgData);
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+          doc.setFontSize(20);
+          doc.text("Reporte de Inteligencia: " + (data.target || 'Desconocido'), 15, 20);
 
-          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-          pdf.save(`osint_intel_${Date.now()}.pdf`);
+          doc.setFontSize(14);
+          doc.text(`Nivel de Riesgo: ${data.riskLevel || 'N/A'} (${data.riskScore || 0}%)`, 15, 35);
+          if (data.geo) doc.text(`Ubicación: ${data.geo.country || 'N/A'} / ${data.geo.isp || 'N/A'}`, 15, 45);
+
+          doc.setFontSize(16);
+          doc.text("Veredicto IA:", 15, 60);
+          doc.setFontSize(12);
+
+          const verdictText = String(data.verdict || 'Sin veredicto');
+          const splitVerdict = doc.splitTextToSize(verdictText, 180);
+          doc.text(splitVerdict, 15, 70);
+
+          let currentY = 70 + (splitVerdict.length * 7) + 10;
+          doc.setFontSize(16);
+          doc.text("Hallazgos:", 15, currentY);
+          doc.setFontSize(11);
+          currentY += 10;
+
+          if (data.findings && Array.isArray(data.findings)) {
+            data.findings.forEach(f => {
+              if (currentY > 270) { doc.addPage(); currentY = 20; }
+              const toolName = f.tool || 'Unknown';
+              const status = f.status ? String(f.status).toUpperCase() : 'UNKNOWN';
+              const textResult = doc.splitTextToSize(`- ${toolName} (${status}): ${f.result || ''}`, 180);
+              doc.text(textResult, 15, currentY);
+              currentY += textResult.length * 7;
+
+              if (f.raw) {
+                const rawText = doc.splitTextToSize(`  Detalle: ${f.raw}`, 170);
+                doc.text(rawText, 20, currentY);
+                currentY += rawText.length * 7 + 3;
+              } else { currentY += 3; }
+            });
+          }
+
+          doc.save(`osint_intel_${Date.now()}.pdf`);
           showNotification('✅ PDF generado con éxito', 'success');
         } catch (err) {
           console.error('Error generando PDF:', err);
           showNotification('❌ Error al generar PDF. Usando impresión nativa.', 'error');
           window.print();
         }
-      }, 500);
+      }, 300);
     });
   }
 
@@ -1920,31 +2232,6 @@ function initializeDashboardShortcuts() {
     networkCard.addEventListener('click', () => {
       executeNetworkAnalysis();
     });
-  }
-}
-
-function initializeThemeToggle() {
-  const themeBtn = document.getElementById('themeToggleBtn');
-  if (!themeBtn) return;
-
-  // Cargar modo guardado
-  const currentTheme = localStorage.getItem('osint-theme') || 'dark';
-  document.documentElement.setAttribute('data-color-scheme', currentTheme);
-  updateThemeIcon(currentTheme);
-
-  themeBtn.addEventListener('click', () => {
-    const newTheme = document.documentElement.getAttribute('data-color-scheme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-color-scheme', newTheme);
-    localStorage.setItem('osint-theme', newTheme);
-    updateThemeIcon(newTheme);
-    showNotification(`🌗 Modo ${newTheme === 'dark' ? 'Oscuro' : 'Claro'} activado`, 'info');
-  });
-}
-
-function updateThemeIcon(theme) {
-  const themeBtn = document.getElementById('themeToggleBtn');
-  if (themeBtn) {
-    themeBtn.innerHTML = theme === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
   }
 }
 
@@ -2166,9 +2453,44 @@ async function executeInlineTool(toolData) {
   const execBtn = document.getElementById('inlinePanelExecBtn');
   if (execBtn) { execBtn.disabled = true; execBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ejecutando...'; }
 
+  // Auto-scrollear al final del modal/página para ver los resultados
+  const executionsContainer = document.getElementById('toolInlinePanel'); // Assuming the panel itself is the container to scroll
+  if (executionsContainer) {
+    executionsContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }
+
+  // 1. PRE-FLIGHT CHECK
+  try {
+    const agConfig = applicationData.api_configurations.find(c => c.name === "Antigravity AI Pro");
+    const agKey = agConfig ? agConfig.key : 'ag_pro_live_9k2m8L4n7P0vXy1z';
+
+    const preflightResp = await fetch(`/api/validate?apiKey=${agKey}`);
+    const preflight = await preflightResp.json();
+
+    if (!preflight.success) {
+      showNotification('❌ Error de Pre-flight: Clave API inválida', 'error');
+      resultsArea.innerHTML = `<div class="inline-results-error" style="color: #ef4444; padding: 20px; text-align: center;">
+        <i class="fas fa-exclamation-circle" style="font-size: 2rem; margin-bottom: 10px;"></i>
+        <p>Pre-flight check fallido: ${preflight.error || 'Error desconocido'}</p>
+      </div>`;
+      if (execBtn) { execBtn.disabled = false; execBtn.innerHTML = '<i class="fas fa-play"></i> Ejecutar'; }
+      return;
+    }
+
+    // Mostrar info de créditos si es exitoso
+    console.log(`[OSINT] Pre-flight Success: ${preflight.creditsRemaining} credits remaining.`);
+    showNotification(`🛡️ Pre-flight: OK (${preflight.creditsRemaining} créditos)`, 'info');
+
+  } catch (preflightErr) {
+    console.warn('[OSINT] Pre-flight skip/fail (local?):', preflightErr.message);
+  }
+
   try {
     let result = null;
     let endpoint = '';
+
+    // Get the key for headers
+    const agKey = applicationData.api_configurations.find(c => c.name === "Antigravity AI Pro")?.key || 'ag_pro_live_9k2m8L4n7P0vXy1z';
 
     switch (toolData.name) {
       case 'WHOIS':
@@ -2212,7 +2534,11 @@ async function executeInlineTool(toolData) {
 
     if (endpoint) {
       try {
-        const resp = await fetch(endpoint);
+        const resp = await fetch(endpoint, {
+          headers: {
+            'x-antigravity-key': agKey
+          }
+        });
         const contentType = resp.headers.get('content-type') || '';
 
         if (!resp.ok || !contentType.includes('application/json')) {
@@ -2297,6 +2623,9 @@ function renderInlineResults(container, toolData, result, success) {
         <button class="inline-copy-btn" onclick="copyResultToClipboard(this)" data-result='${JSON.stringify(result)}'>
           <i class="fas fa-copy"></i> Copiar
         </button>
+        <button class="inline-copy-btn" onclick="saveResultToReports(this)" data-toolname="${toolData.name}" data-result='${JSON.stringify(result)}' style="margin-left: 5px;">
+          <i class="fas fa-save"></i> Guardar en Reportes
+        </button>
       </div>
       <div class="inline-result-body">
         <table class="result-table">${rows}</table>
@@ -2309,6 +2638,57 @@ function copyResultToClipboard(btn) {
   navigator.clipboard.writeText(JSON.stringify(JSON.parse(data), null, 2)).then(() => {
     showNotification('📋 Resultado copiado al portapapeles', 'success');
   });
+}
+
+function saveResultToReports(btn) {
+  const toolName = btn.getAttribute('data-toolname');
+  const resultDataStr = btn.getAttribute('data-result');
+  
+  if (!resultDataStr) return;
+  const resultData = JSON.parse(resultDataStr);
+
+  const reportName = `${toolName} - AutoGuardado`;
+  const reportId = `RPT-${Date.now()}`;
+
+  // Structured the data for the reports viewer
+  // We'll wrap the raw result inside a target/findings structure so the viewer handles it gracefully
+  const reportData = {
+      target: resultData.target || resultData.query || resultData.ip || resultData.domain || resultData.email || 'Ejecución Directa',
+      riskScore: resultData.analysis ? resultData.analysis.total_risk_score : 0,
+      riskLevel: resultData.analysis ? resultData.analysis.status : 'INFORMATIVO',
+      verdict: 'Reporte autogenerado desde herramienta individual mediante JSON Parser.',
+      geo: {
+          country: resultData.country || resultData.geo_location?.country || 'N/A',
+          isp: resultData.carrier || resultData.geo_location?.isp || 'N/A'
+      },
+      findings: [
+          {
+              tool: toolName,
+              status: resultData.error ? 'critical' : (resultData.analysis && resultData.analysis.total_risk_score >= 80 ? 'critical' : 'success'),
+              result: resultData.service || 'Ejecución Exitosa',
+              raw: JSON.stringify(resultData, null, 2)
+          }
+      ]
+  };
+
+  const newReport = {
+    id: reportId,
+    name: reportName,
+    type: 'herramienta',
+    created: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+    status: 'Completado',
+    data: reportData
+  };
+
+  OSINTApp.reports.unshift(newReport);
+  localStorage.setItem('osint_reports', JSON.stringify(OSINTApp.reports));
+
+  showNotification(`✅ Reporte "${reportName}" guardado con éxito`, 'success');
+  
+  // Refresh reports UI if available
+  if (typeof renderReportsList === 'function') {
+      renderReportsList();
+  }
 }
 
 // REPORTS SECTION
@@ -2497,36 +2877,62 @@ window.exportReport = async function (index, format) {
   } else if (format === 'pdf') {
     showNotification('📄 Generando PDF con Inteligencia Forense...', 'info');
 
-    // IMPORTANTE: Forzamos la vista de detalles para que el modal se actualice con la IA
-    viewReportDetails(index);
-
-    setTimeout(async () => {
-      const element = document.getElementById('analysisModalBody');
-      if (!element) return;
-
+    setTimeout(() => {
       try {
         const { jsPDF } = window.jspdf;
-        // Capturamos el modal incluyendo la nueva sección de IA
-        const canvas = await html2canvas(element, {
-          backgroundColor: '#0a0a0f', // Color de tu fondo oscuro
-          scale: 2,
-          logging: false,
-          useCORS: true
-        });
+        const doc = new jsPDF();
+        const data = report.data;
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        doc.setFontSize(20);
+        doc.text("Reporte: " + (data ? (data.target || report.name) : report.name), 15, 20);
+        doc.setFontSize(12);
+        doc.text("Generado el: " + report.created, 15, 30);
 
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`OSINT_AI_PRO_REPORT_${report.id}.pdf`);
+        if (data) {
+          doc.setFontSize(14);
+          doc.text(`Nivel de Riesgo: ${data.riskLevel || 'N/A'} (${data.riskScore || 0}%)`, 15, 45);
+          if (data.geo) doc.text(`Ubicación: ${data.geo.country || 'N/A'} / ${data.geo.isp || 'N/A'}`, 15, 55);
+
+          doc.setFontSize(16);
+          doc.text("Veredicto IA:", 15, 70);
+          doc.setFontSize(12);
+
+          const verdictText = String(data.verdict || 'Sin veredicto');
+          const splitVerdict = doc.splitTextToSize(verdictText, 180);
+          doc.text(splitVerdict, 15, 80);
+
+          let currentY = 80 + (splitVerdict.length * 7) + 10;
+
+          doc.setFontSize(16);
+          doc.text("Hallazgos:", 15, currentY);
+          doc.setFontSize(11);
+          currentY += 10;
+
+          if (data.findings && Array.isArray(data.findings)) {
+            data.findings.forEach(f => {
+              if (currentY > 270) { doc.addPage(); currentY = 20; }
+              const toolName = f.tool || 'Unknown Tool';
+              const status = f.status ? String(f.status).toUpperCase() : 'UNKNOWN';
+              const textResult = doc.splitTextToSize(`- ${toolName} (${status}): ${f.result || ''}`, 180);
+              doc.text(textResult, 15, currentY);
+              currentY += textResult.length * 7;
+
+              if (f.raw) {
+                const rawText = doc.splitTextToSize(`  Detalle: ${f.raw}`, 170);
+                doc.text(rawText, 20, currentY);
+                currentY += rawText.length * 7 + 3;
+              } else { currentY += 3; }
+            });
+          }
+        }
+
+        doc.save(`OSINT_AI_PRO_REPORT_${report.id}.pdf`);
         showNotification('✅ PDF generado con éxito', 'success');
       } catch (err) {
         console.error('Error generando PDF:', err);
         showNotification('❌ Error al generar PDF.', 'error');
       }
-    }, 1000); // Damos un poco más de tiempo para que la IA se renderice bien
+    }, 500);
   }
 };
 
@@ -2543,7 +2949,6 @@ function closeAllModals() {
   document.querySelectorAll('.modal').forEach(m => {
     m.classList.remove('active');
     m.classList.add('hidden');
-    m.style.display = 'none';
   });
   document.getElementById('modalOverlay')?.classList.add('hidden');
 }
@@ -2596,13 +3001,15 @@ function renderMonitoringList() {
   if (!listContainer) return;
 
   listContainer.innerHTML = OSINTApp.monitoring.map(t => `
-    <div class="target-item" style="border-left:4px solid ${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}; padding:15px; background:rgba(255,255,255,0.03); margin-bottom:10px; border-radius:8px;">
-      <div style="display:flex; justify-content:space-between;">
-        <strong>${t.name}</strong>
-        <span style="color:${t.threatLevel === 'error' ? '#ff4646' : '#00ff81'}">${t.status.toUpperCase()}</span>
+    <div class="target-item" style="border-left:4px solid ${t.threatLevel === 'error' ? '#ef4444' : '#10b981'}; padding:15px; background:rgba(255,255,255,0.03); margin-bottom:10px; border-radius:8px; cursor: pointer; transition: all 0.2s;" onclick="viewMonitorDetails(${t.id})" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'">
+      <div style="display:flex; justify-content:space-between; align-items: center;">
+        <strong style="font-size: 1.1em; color: #f8fafc;">${t.name}</strong>
+        <div>
+          <span style="color:${t.threatLevel === 'error' ? '#ef4444' : '#10b981'}; font-weight: bold; margin-right: 15px;">${t.status.toUpperCase()}</span>
+          <button onclick="event.stopPropagation(); deleteMonitor(${t.id})" style="background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); border-radius: 4px; padding: 4px 8px; color:#ef4444; cursor:pointer;" title="Eliminar objetivo"><i class="fas fa-trash"></i></button>
+        </div>
       </div>
-      <p style="font-size:0.85rem; color:#00ff81; margin-top:5px;"><i><i class="fas fa-robot"></i> ${t.aiInsight}</i></p>
-      <div style="text-align:right;"><button onclick="deleteMonitor(${t.id})" style="background:none; border:none; color:#ff4646; cursor:pointer;"><i class="fas fa-trash"></i></button></div>
+      <p style="font-size:0.85rem; color:${t.threatLevel === 'error' ? '#ef4444' : '#10b981'}; margin-top:8px;"><i><i class="fas fa-robot"></i> ${t.aiInsight}</i></p>
     </div>
   `).join('');
 }
@@ -2619,6 +3026,43 @@ function simulateAIWatcher(id) {
     renderMonitoringList();
     if (isThreat) showNotification('🚨 Amenaza en el Vigía', 'error');
   }, 4000);
+}
+
+window.viewMonitorDetails = function (id) {
+  const target = OSINTApp.monitoring.find(t => t.id === id);
+  if (!target) return;
+
+  const modalBody = document.getElementById('analysisModalBody');
+  const modalTitle = document.querySelector('#analysisModal .modal-header h3');
+  const color = target.threatLevel === 'error' ? '#ef4444' : '#10b981';
+
+  if (modalBody && modalTitle) {
+    modalTitle.innerHTML = `<i class="fas fa-eye" style="color: ${color}"></i> Vigía IA - Monitoreo en Vivo`;
+    modalBody.innerHTML = `
+              <div style="padding: 10px;">
+                  <h2 style="color: #f8fafc; margin-bottom: 5px; font-size: 24px;">${target.name}</h2>
+                  <p style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Último escaneo: ${target.lastCheck} | Estado: <strong style="color: ${color}">${target.status.toUpperCase()}</strong></p>
+                  
+                  <div style="background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 8px; border-left: 4px solid ${color}; margin-bottom: 20px;">
+                      <h4 style="color: #f8fafc; margin-bottom: 10px; font-size: 15px;"><i class="fas fa-robot" style="color: #38bdf8;"></i> Análisis Inteligente de Gemini:</h4>
+                      <p style="color: ${color}; font-size: 15px; font-style: italic;">"${target.aiInsight}"</p>
+                  </div>
+                  
+                  <h4 style="color: #e2e8f0; margin-bottom: 12px; font-size: 15px;">Parámetros del Sensor Activo:</h4>
+                  <div style="display: flex; gap: 15px; flex-wrap: wrap; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                      <label class="checkbox-label" style="font-size: 13px;"><input type="checkbox" checked><span class="checkmark"></span> Analizar Tráfico Entrante</label>
+                      <label class="checkbox-label" style="font-size: 13px;"><input type="checkbox" checked><span class="checkmark"></span> Bloquear Anomalías</label>
+                      <label class="checkbox-label" style="font-size: 13px;"><input type="checkbox" ${target.threatLevel === 'error' ? 'checked' : ''}><span class="checkmark"></span> Alerta Prioritaria</label>
+                  </div>
+                  
+                  <div style="margin-top: 30px; display: flex; justify-content: space-between; gap: 15px;">
+                      <button class="btn btn--outline" onclick="closeAllModals()" style="flex: 1;">Cerrar Vista</button>
+                      <button class="btn btn--primary" onclick="showNotification('⚙️ Parámetros de monitoreo actualizados', 'success'); closeAllModals();" style="flex: 2;"><i class="fas fa-save"></i> Guardar Configuración</button>
+                  </div>
+              </div>
+         `;
+    openModal('analysisModal');
+  }
 }
 
 window.deleteMonitor = function (id) {
@@ -2665,14 +3109,26 @@ function setupMonitoringControls() {
   const exportBtn = document.getElementById('exportMonitoringData');
   if (exportBtn) {
     exportBtn.onclick = () => {
-      showNotification('📥 Exportando JSON...', 'success');
+      if (!OSINTApp.monitoring || OSINTApp.monitoring.length === 0) {
+        showNotification('⚠️ No hay datos de monitoreo para exportar', 'warning');
+        return;
+      }
+      const blob = new Blob([JSON.stringify(OSINTApp.monitoring, null, 2)], { type: 'application/json' });
+      downloadFile(blob, `osint-monitoring-data-${Date.now()}.json`);
+      showNotification('✅ Datos de monitoreo exportados en JSON', 'success');
     };
   }
   const configBtn = document.getElementById('configAlertsBtn');
   if (configBtn) {
     configBtn.onclick = () => {
       const settingsTab = document.querySelector('[data-section="settings"]');
-      if (settingsTab) settingsTab.click();
+      if (settingsTab) {
+        settingsTab.click();
+        setTimeout(() => {
+          const notificationsTab = document.querySelector('.settings-tab[data-tab="notifications"]');
+          if (notificationsTab) notificationsTab.click();
+        }, 100);
+      }
     };
   }
 }
@@ -2683,9 +3139,197 @@ function loadUserPreferences() {
   if (prefs) Object.assign(OSINTApp.settings, JSON.parse(prefs));
 }
 
-function formatMarkdown(text) {
-  if (!text) return "";
-  return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+function executeNetworkAnalysis() {
+  const targetInput = document.getElementById('universalSearchInput');
+  const intelligenceNav = document.querySelector('[data-section="intelligence"]');
+
+  // Si estamos en otra sección, navegamos primero
+  if (OSINTApp.currentSection !== 'intelligence' && intelligenceNav) {
+    intelligenceNav.click();
+  }
+
+  showNotification('🌐 Detectando IP pública...', 'info');
+
+  fetch('https://api.ipify.org?format=json')
+    .then(res => res.json())
+    .then(data => {
+      if (targetInput) {
+        targetInput.value = data.ip;
+        showNotification('🌐 IP Pública detectada: ' + data.ip, 'success');
+
+        // Ejecutar búsqueda automáticamente
+        const searchBtn = document.getElementById('startUniversalSearchBtn');
+        if (searchBtn) {
+          setTimeout(() => searchBtn.click(), 600);
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Error detectando IP", err);
+      if (targetInput) {
+        targetInput.value = '1.1.1.1';
+        showNotification('🌐 Error detectando IP pública. Usando Cloudflare DNS como dummy.', 'warning');
+        const searchBtn = document.getElementById('startUniversalSearchBtn');
+        if (searchBtn) setTimeout(() => searchBtn.click(), 600);
+      }
+    });
 }
 
+function downloadFile(blob, fileName) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+
+function formatMarkdown(text) {
+  if (!text) return "";
+  // Soporte básico para negritas y saltos de línea
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// ==========================================
+// SISTEMAS DE TEMA E IDIOMA (RE-ESTABLECIDOS)
+// ==========================================
+
+function setTheme(mode, notify = true) {
+  const root = document.documentElement;
+  const body = document.body;
+  const themeBtn = document.getElementById('themeToggleBtn');
+  const themeSelect = document.getElementById('themeSelect');
+
+  if (mode === 'light') {
+    root.classList.add('light-mode');
+    body.classList.add('light-mode');
+    if (themeBtn) themeBtn.innerHTML = '<i class="fas fa-moon"></i>';
+    if (themeSelect) themeSelect.value = 'light';
+  } else {
+    root.classList.remove('light-mode');
+    body.classList.remove('light-mode');
+    if (themeBtn) themeBtn.innerHTML = '<i class="fas fa-sun"></i>';
+    if (themeSelect) themeSelect.value = 'dark';
+  }
+
+  localStorage.setItem('osint_theme', mode);
+  OSINTApp.settings.theme = mode;
+  if (notify) {
+    showNotification(`TEMA: ${mode === 'light' ? 'Claro' : 'Oscuro'}`, 'info');
+  }
+}
+
+function initializeThemeSystem() {
+  const savedTheme = localStorage.getItem('osint_theme') || 'dark';
+  setTheme(savedTheme, false);
+
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      const isLight = document.documentElement.classList.contains('light-mode');
+      setTheme(isLight ? 'dark' : 'light');
+    });
+  }
+
+  const themeSelect = document.getElementById('themeSelect');
+  if (themeSelect) {
+    themeSelect.addEventListener('change', (e) => {
+      if (e.target.value !== 'auto') setTheme(e.target.value);
+    });
+  }
+}
+
+function setLanguage(lang, notify = true) {
+  OSINTApp.currentLanguage = lang;
+  OSINTApp.settings.language = lang;
+  document.documentElement.lang = lang;
+  localStorage.setItem('osint_lang', lang);
+
+  // Sync selectors
+  const sidebarSelect = document.getElementById('languageSelect');
+  const settingsSelect = document.getElementById('languageSettingSelect');
+  if (sidebarSelect) sidebarSelect.value = lang;
+  if (settingsSelect) settingsSelect.value = lang;
+
+  applyTranslations(lang);
+  if (notify) {
+    showNotification(lang === 'es' ? 'Idioma: Español' : 'Language: English', 'success');
+  }
+}
+
+function initializeLanguageSystem() {
+  const savedLang = localStorage.getItem('osint_lang') || 'es';
+  setLanguage(savedLang, false);
+
+  const sidebarSelect = document.getElementById('languageSelect');
+  if (sidebarSelect) {
+    sidebarSelect.addEventListener('change', (e) => setLanguage(e.target.value));
+  }
+
+  const settingsSelect = document.getElementById('languageSettingSelect');
+  if (settingsSelect) {
+    settingsSelect.addEventListener('change', (e) => setLanguage(e.target.value));
+  }
+}
+
+function applyTranslations(lang) {
+  const t = translations[lang];
+  if (!t) return;
+
+  // Sidebar e Inventario de navegacion - CORREGIDO: usar data-section
+  document.querySelectorAll('.nav-item[data-section]').forEach(el => {
+    const key = el.getAttribute('data-section');
+    const span = el.querySelector('span');
+    if (span && t.nav[key]) span.textContent = t.nav[key];
+  });
+
+  // Header Titles - CORREGIDO: sincronizar con IDs del HTML
+  const headerH1 = document.querySelector('.header-title h1');
+  const pageTitleEl = document.getElementById('page-title');
+  const currentSection = OSINTApp.currentSection;
+
+  if (t.titles[currentSection]) {
+    if (headerH1) headerH1.textContent = t.titles[currentSection];
+    if (pageTitleEl) pageTitleEl.textContent = t.titles[currentSection];
+  }
+
+  // Dashboard Specifics
+  if (currentSection === 'dashboard') {
+    const labels = {
+      es: ["Algoritmos Activos", "Investigaciones", "Amenazas", "Analizados", "Puntuación de Riesgo"],
+      en: ["Active Algorithms", "Investigations", "Threats", "Analyzed", "Risk Score"]
+    };
+
+    document.querySelectorAll('.stat-label, .metric-label').forEach(el => {
+      const text = el.textContent.trim();
+      const idx = labels[lang === 'en' ? 'es' : 'en'].indexOf(text);
+      if (idx !== -1) el.textContent = labels[lang][idx];
+    });
+  }
+
+  // Otros botones y estados
+  const quickScanBtn = document.getElementById('quickScanBtn');
+  if (quickScanBtn) {
+    const span = quickScanBtn.querySelector('span');
+    if (span) span.textContent = t.buttons.quick_scan;
+  }
+
+  const aiStatusLabel = document.querySelector('.ai-indicator span');
+  if (aiStatusLabel) aiStatusLabel.textContent = t.status.ai_online;
+
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) {
+    const span = logoutBtn.querySelector('span');
+    if (span) span.textContent = t.buttons.logout;
+  }
+}
+
+// Traducciones movidas a la cabecera
+
 console.log("🚀 OSINT AI Pro: Despegue completado. Sistema al 100%.");
+

@@ -27,16 +27,13 @@
                 <h2>Acceso Premium</h2>
                 <p>Plataforma profesional de inteligencia y análisis</p>
             </div>
-            <form class="login-form" onsubmit="return false;">
                 <div class="form-group">
                     <label class="form-label">Email</label>
-                    <input type="email" id="loginEmail" class="form-control" placeholder="admin@osint-ai-pro.com"
-                        value="admin@osint-ai-pro.com">
+                    <input type="email" id="loginEmail" class="form-control" placeholder="tu-email@empresa.com">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Contraseña</label>
-                    <input type="password" id="loginPassword" class="form-control" placeholder="OSINTPro2025!"
-                        value="OSINTPro2025!">
+                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••••••">
                 </div>
                 <div class="form-group">
                     <label class="checkbox-label">
@@ -49,11 +46,6 @@
                     <i class="fas fa-sign-in-alt"></i>
                     Iniciar Sesión
                 </button>
-                <div class="demo-credentials">
-                    <p><strong>Credenciales Demo Premium:</strong></p>
-                    <p>Email: admin@osint-ai-pro.com</p>
-                    <p>Password: OSINTPro2025!</p>
-                </div>
             </form>
         </div>
     </div>
@@ -617,7 +609,7 @@
                         </div>
                     </div>
                 </section>
-                
+
                 <!-- Settings Section -->
                 <section id="settings-section" class="content-section">
                     <div class="settings-advanced">
@@ -862,6 +854,11 @@
                         <label class="form-label">Nombre del Reporte</label>
                         <input type="text" id="reportName" class="form-control"
                             placeholder="Ej: Análisis de Seguridad Q4 2024">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Objetivo a Analizar (IP/Dominio)</label>
+                        <input type="text" id="reportTarget" class="form-control"
+                            placeholder="Ej: 192.168.1.1 o empresa.com">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Tipo de Reporte</label>
