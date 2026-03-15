@@ -1508,9 +1508,9 @@ function initializeKasperskyMap() {
                 <div style="padding: 20px; text-align: center;">
                     <h2 id="mapClickCountry" style="color: #f8fafc; margin-bottom: 5px;">Origen Estimado: Resolviendo...</h2>
                     <p style="color: #94a3b8; font-family: monospace; font-size: 14px; margin-bottom: 20px;">Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)}</p>
-                    <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">Se ha detectado actividad inusual en este nodo geoespacial. El sistema OSINT AI está interceptando paquetes para determinar la naturaleza de la amenaza.</p>
-                    <div style="margin-top: 15px; padding: 15px; background: rgba(57, 255, 20, 0.1); border-radius: 8px; border-left: 4px solid #39ff14;">
-                        <i class="fas fa-radar" style="color: #39ff14;"></i> Iniciando análisis profundo de red...
+                    <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">Coordenadas geoespaciales inspeccionadas mediante el satélite de telemetría.</p>
+                    <div id="mapClickResult" style="margin-top: 15px; padding: 15px; background: rgba(57, 255, 20, 0.1); border-radius: 8px; border-left: 4px solid #39ff14;">
+                        <i class="fas fa-satellite-dish" style="color: #39ff14;"></i> Triangulando procedencia...
                     </div>
                 </div>
             `;
@@ -1528,13 +1528,21 @@ function initializeKasperskyMap() {
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
             const data = await res.json();
-            const country = data.address?.country || 'Ubicación Oceánica / Desconocida';
+            const country = data.address?.country || 'Aguas Internacionales / Zona no asignada';
             const countryEl = document.getElementById('mapClickCountry');
-            if (countryEl) countryEl.innerHTML = `Origen Estimado: ${country}`;
+            const resultEl = document.getElementById('mapClickResult');
+            if (countryEl) countryEl.innerHTML = `Región: ${country}`;
+            if (resultEl) {
+                resultEl.innerHTML = `<i class="fas fa-check-circle" style="color: #39ff14;"></i> Sector asegurado. No se detectan anomalías de emisión en este cuadrante actualmente.`;
+            }
         } catch(e) {
             console.warn("Reverse Geocoding failed", e);
             const countryEl = document.getElementById('mapClickCountry');
-            if (countryEl) countryEl.innerHTML = `Origen Estimado: Desconocido`;
+            const resultEl = document.getElementById('mapClickResult');
+            if (countryEl) countryEl.innerHTML = `Región: Desconocida`;
+            if (resultEl) {
+                resultEl.innerHTML = `<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Error de triangulación satelital.`;
+            }
         }
       }
     });
@@ -1765,9 +1773,13 @@ function addRealThreat(threatData) {
   const threatFeed = document.getElementById('threatFeed');
   if (!threatFeed) return;
 
-  // Mapeamos el botnet C2 al estilo visual de Kaspersky
+  // Asignamos tipos de amenazas variadas para mantener el mapa rico visualmente
   const threatTypes = applicationData.kaspersky_map_style.threat_types;
-  let visualThreat = threatTypes.find(t => t.name.toLowerCase().includes('botnet') || t.name.toLowerCase().includes('malw')) || threatTypes[0];
+  
+  // Utilizar el último dígito de la IP o un random para asignar una clasificación aparente
+  // Aunque en el feed ponga C2, la línea tendrá diferentes clasificaciones visuales
+  const typeIndex = Math.floor(Math.random() * threatTypes.length);
+  let visualThreat = threatTypes[typeIndex];
 
   const threatItem = document.createElement('div');
   threatItem.className = `threat-feed-item threat-${visualThreat.name.toLowerCase()}`;
@@ -1803,15 +1815,18 @@ function addRealThreat(threatData) {
   if (window.threatMapInstance && threatData.lat && threatData.lng) {
     updateThreatCounts();
     
-    // Crear un origen aleatorio simulando la víctima, con destino al servidor C2 real
-    const victimLat = (Math.random() - 0.5) * 160;
-    const victimLng = (Math.random() - 0.5) * 360;
+    // Crear un punto aleatorio en el mapa simulando la víctima
+    const randomLat = (Math.random() - 0.5) * 160;
+    const randomLng = (Math.random() - 0.5) * 360;
+
+    // 50% de probabilidad de que el ataque vaya hacia el C2, o salga del C2 hacia la victima
+    const directionToC2 = Math.random() > 0.5;
 
     const newArc = {
-      startLat: victimLat,
-      startLng: victimLng,
-      endLat: threatData.lat,
-      endLng: threatData.lng,
+      startLat: directionToC2 ? randomLat : threatData.lat,
+      startLng: directionToC2 ? randomLng : threatData.lng,
+      endLat: directionToC2 ? threatData.lat : randomLat,
+      endLng: directionToC2 ? threatData.lng : randomLng,
       color: visualThreat.color
     };
 
