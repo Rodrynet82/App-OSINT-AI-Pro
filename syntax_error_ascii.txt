@@ -1,0 +1,28 @@
+node : C:\Users\Rodrigo\Deskto
+p\RODRIGO\06.PROYECTOS Y 
+TRABAJOS PERSONALES\01. 
+PROYECTOS IA\App OSINT AI 
+Pro\public\app.js:2973
+En l?nea: 1 Car?cter: 1
++ node -c "public/app.js" 
+2>&1 | Out-File -Encoding 
+ascii syntax_error_ ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: (C:\Users\  
+  Rodrig...lic\app.js:2973:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+function closeAllModals() {
+^
+
+SyntaxError: Identifier 
+'closeAllModals' has already 
+been declared
+    at checkSyntax (node:inter
+nal/main/check_syntax:72:5)
+
+Node.js v24.13.1

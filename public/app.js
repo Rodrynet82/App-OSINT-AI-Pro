@@ -2970,14 +2970,6 @@ window.deleteReport = function (index) {
   }
 };
 
-function closeAllModals() {
-  document.querySelectorAll('.modal').forEach(m => {
-    m.classList.remove('active');
-    m.classList.add('hidden');
-  });
-  document.getElementById('modalOverlay')?.classList.add('hidden');
-}
-
 // ==========================================
 // SECCIÓN DE MONITOREO VIGÍA IA
 // ==========================================
@@ -3162,54 +3154,6 @@ function setupMonitoringControls() {
 function loadUserPreferences() {
   const prefs = localStorage.getItem('user-preferences');
   if (prefs) Object.assign(OSINTApp.settings, JSON.parse(prefs));
-}
-
-function executeNetworkAnalysis() {
-  const targetInput = document.getElementById('universalSearchInput');
-  const intelligenceNav = document.querySelector('[data-section="intelligence"]');
-
-  // Si estamos en otra sección, navegamos primero
-  if (OSINTApp.currentSection !== 'intelligence' && intelligenceNav) {
-    intelligenceNav.click();
-  }
-
-  showNotification('🌐 Detectando IP pública...', 'info');
-
-  fetch('https://api.ipify.org?format=json')
-    .then(res => res.json())
-    .then(data => {
-      if (targetInput) {
-        targetInput.value = data.ip;
-        showNotification('🌐 IP Pública detectada: ' + data.ip, 'success');
-
-        // Ejecutar búsqueda automáticamente
-        const searchBtn = document.getElementById('startUniversalSearchBtn');
-        if (searchBtn) {
-          setTimeout(() => searchBtn.click(), 600);
-        }
-      }
-    })
-    .catch(err => {
-      console.error("Error detectando IP", err);
-      if (targetInput) {
-        targetInput.value = '1.1.1.1';
-        showNotification('🌐 Error detectando IP pública. Usando Cloudflare DNS como dummy.', 'warning');
-        const searchBtn = document.getElementById('startUniversalSearchBtn');
-        if (searchBtn) setTimeout(() => searchBtn.click(), 600);
-      }
-    });
-}
-
-function downloadFile(blob, fileName) {
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
 }
 
 function formatMarkdown(text) {
