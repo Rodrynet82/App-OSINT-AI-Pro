@@ -1745,10 +1745,13 @@ function startThreatFeed() {
   const threatFeed = document.getElementById('threatFeed');
   if (!threatFeed) return;
 
-  // Real Threat Polling every 15 seconds
+  // Real Threat Polling every 30 seconds (server-side dedup handles the rest)
   fetchLiveThreats();
-  setInterval(fetchLiveThreats, 15000);
+  setInterval(fetchLiveThreats, 30000);
 }
+
+// Frontend dedup set to avoid showing the same IP twice
+window.seenThreatIPs = window.seenThreatIPs || new Set();
 
 async function fetchLiveThreats() {
   try {
@@ -1760,7 +1763,11 @@ async function fetchLiveThreats() {
     });
     const data = await res.json();
     if (data.success && data.threats) {
-       data.threats.forEach((t, i) => {
+       let newThreats = data.threats.filter(t => !window.seenThreatIPs.has(t.ip));
+       newThreats.forEach(t => window.seenThreatIPs.add(t.ip));
+       // Keep dedup set from growing forever
+       if (window.seenThreatIPs.size > 300) window.seenThreatIPs.clear();
+       newThreats.forEach((t, i) => {
           setTimeout(() => addRealThreat(t), i * 800);
        });
     }

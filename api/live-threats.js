@@ -1,5 +1,9 @@
 import { validateApiKey } from './_utils/validation.js';
 
+// In-memory dedup cache: track IPs shown this session
+const recentIps = new Set();
+const MAX_CACHE = 200; // keep last 200 unique IPs
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,8 +14,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  // Permite llamadas locales o desde el frontend sin clave para la visual del mapa público,
-  // pero mantendremos validación básica si se envía.
   const clientKey = req.headers['x-antigravity-key'];
   if (clientKey) {
      const validation = validateApiKey(clientKey);
@@ -19,46 +21,75 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch REAL Live Threat Data from Abuse.ch (Feodo Tracker - Botnet C2s)
-    const threatRes = await fetch('https://feodotracker.abuse.ch/downloads/ipblocklist.json', { timeout: 8000 });
+    // Fetch REAL Live Threat Data from FeodoTracker (Botnet C2s)
+    const threatRes = await fetch('https://feodotracker.abuse.ch/downloads/ipblocklist.json', { signal: AbortSignal.timeout(8000) });
     const threatData = await threatRes.json();
 
     if (!Array.isArray(threatData)) {
        throw new Error("Invalid format from Threat Intel Feed");
     }
 
-    // Filter only online C2 servers
-    const onlineThreats = threatData.filter(t => t.status === 'online');
+    // Filter to online C2 servers, excluding known cloud hosters for more geo-diversity
+    const EXCLUDED_ASNS = ['amazon', 'aws', 'microsoft', 'azure', 'digitalocean', 'linode', 'google', 'cloudflare', 'ovh', 'hetzner'];
     
-    // Pick 5-8 random live threats for this poll
-    const numThreats = Math.floor(Math.random() * 4) + 5;
-    const selected = [];
-    for (let i = 0; i < numThreats; i++) {
-       const randomIndex = Math.floor(Math.random() * onlineThreats.length);
-       selected.push(onlineThreats[randomIndex]);
+    let onlineThreats = threatData.filter(t => {
+      if (t.status !== 'online') return false;
+      // Skip if already in our recent dedup cache
+      if (recentIps.has(t.ip_address)) return false;
+      // Filter out known cloud providers to get more interesting geos
+      const asn = (t.as_name || '').toLowerCase();
+      const isExcluded = EXCLUDED_ASNS.some(ex => asn.includes(ex));
+      return !isExcluded;
+    });
+
+    // If filtering was too aggressive, fall back to all online (still dedup)
+    if (onlineThreats.length < 5) {
+      onlineThreats = threatData.filter(t => t.status === 'online' && !recentIps.has(t.ip_address));
     }
 
-    // 2. Batch GeoLocation request using ip-api.com for the selected IPs
+    // If still not enough (all seen), reset the cache
+    if (onlineThreats.length < 5) {
+      recentIps.clear();
+      onlineThreats = threatData.filter(t => t.status === 'online');
+    }
+
+    // Pick 5–8 unique live threats for this poll by shuffling first
+    const shuffled = onlineThreats.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, Math.min(8, shuffled.length));
+
+    // Add selected IPs to dedup cache
+    selected.forEach(t => {
+      recentIps.add(t.ip_address);
+      if (recentIps.size > MAX_CACHE) {
+        // Delete oldest (first) element
+        const first = recentIps.values().next().value;
+        recentIps.delete(first);
+      }
+    });
+
+    // Batch GeoLocation using ip-api.com
     const ipsToLocate = selected.map(t => t.ip_address);
     const geoRes = await fetch('http://ip-api.com/batch', {
       method: 'POST',
       body: JSON.stringify(ipsToLocate),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(6000)
     });
     
-    const geoData = await geoRes.json(); // Array of geo results corresponding to the IPs
+    const geoData = await geoRes.json();
 
-    // 3. Map into the format our frontend expects
+    // Map to frontend format
     const finalThreats = selected.map((t, index) => {
        const geo = geoData[index];
-       if (geo.status !== 'success') return null;
-
+       if (!geo || geo.status !== 'success') return null;
+       // Skip if lat/lng maps to US CONUS & we have room to skip
        return {
-          id: `${t.ip_address}-${Date.now()}`,
+          id: `${t.ip_address}-${Date.now()}-${index}`,
           ip: t.ip_address,
           type: t.malware || 'Botnet C2',
-          city: geo.city || geo.country,
+          city: geo.city || geo.regionName || geo.country,
           country: geo.country,
+          countryCode: geo.countryCode || '',
           lat: geo.lat,
           lng: geo.lon,
           org: geo.isp || geo.org || t.as_name,
