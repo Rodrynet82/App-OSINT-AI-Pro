@@ -1589,29 +1589,9 @@ function initializeKasperskyMap() {
       }
     });
 
-    // Añadir ataques aleatorios continuamente
-    OSINTApp.threatMapInterval = setInterval(() => {
-      updateThreatCounts();
-
-      // Lanzar un nuevo láser/arco
-      const newArc = {
-        startLat: (Math.random() - 0.5) * 180,
-        startLng: (Math.random() - 0.5) * 360,
-        endLat: (Math.random() - 0.5) * 180,
-        endLng: (Math.random() - 0.5) * 360,
-        color: applicationData.kaspersky_map_style.threat_types[Math.floor(Math.random() * 4)].color
-      };
-      const currentArcs = window.threatMapInstance.arcsData();
-      window.threatMapInstance.arcsData([...currentArcs.slice(-20), newArc]);
-
-    }, 2500);
-
     // Start threat feed
     if (threatFeed) {
       startThreatFeed();
-      OSINTApp.threatFeedInterval = setInterval(() => {
-        addRandomThreat();
-      }, Math.random() * 5000 + 3000);
     }
 
     // MAP CONTROLS LOGIC
@@ -1831,6 +1811,42 @@ function addRealThreat(threatData) {
         window.threatMapInstance.pointOfView({ lat: threatData.lat, lng: threatData.lng, altitude: 1.5 }, 1000);
     }
   });
+
+  // Inyectar ataque en el 3D Map
+  if (window.threatMapInstance && threatData.lat && threatData.lng) {
+    updateThreatCounts();
+    
+    // Crear un origen aleatorio simulando la víctima, con destino al servidor C2 real
+    const victimLat = (Math.random() - 0.5) * 160;
+    const victimLng = (Math.random() - 0.5) * 360;
+
+    const newArc = {
+      startLat: victimLat,
+      startLng: victimLng,
+      endLat: threatData.lat,
+      endLng: threatData.lng,
+      color: visualThreat.color
+    };
+
+    const newRing = {
+      lat: threatData.lat,
+      lng: threatData.lng,
+      maxR: 3 + Math.random() * 2,
+      propagationSpeed: 0.5 + Math.random(),
+      repeatPeriod: 1500,
+      color: visualThreat.color
+    };
+
+    try {
+      const currentArcs = window.threatMapInstance.arcsData() || [];
+      window.threatMapInstance.arcsData([...currentArcs.slice(-25), newArc]);
+
+      const currentRings = window.threatMapInstance.ringsData() || [];
+      window.threatMapInstance.ringsData([...currentRings.slice(-10), newRing]);
+    } catch(err) {
+      console.warn('Map injection issue', err);
+    }
+  }
 
   threatFeed.insertBefore(threatItem, threatFeed.firstChild);
 
