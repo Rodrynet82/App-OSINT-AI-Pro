@@ -1,4 +1,4 @@
-# OSINT AI Pro 🚨 **V3.0 - Globe.gl Edition**
+# OSINT AI Pro 🚨 **V3.0**
 
 Plataforma web de **inteligencia de amenazas OSINT** con IA avanzada. Dashboard profesional con **globo 3D interactivo** (Globe.gl), 19 pruebas automatizadas, reportes PDF/JSON y suite de herramientas expandida.
 
