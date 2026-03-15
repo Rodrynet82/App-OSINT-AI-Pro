@@ -1726,10 +1726,8 @@ function initializeKasperskyMap() {
         }
         showNotification('🌐 Sincronizando telemetría global...', 'info');
 
-        // Forzar inserción de amenazas nuevas rápido
-        for (let i = 0; i < 3; i++) {
-          setTimeout(addRandomThreat, i * 200);
-        }
+        // Forzar inserción de amenazas nuevas rápido (llamada manual)
+        fetchLiveThreats();
       });
     }
 
@@ -1772,61 +1770,70 @@ function startThreatFeed() {
   const threatFeed = document.getElementById('threatFeed');
   if (!threatFeed) return;
 
-  // Add initial threats
-  for (let i = 0; i < 5; i++) {
-    setTimeout(() => addRandomThreat(), i * 500);
+  // Real Threat Polling every 15 seconds
+  fetchLiveThreats();
+  setInterval(fetchLiveThreats, 15000);
+}
+
+async function fetchLiveThreats() {
+  try {
+    const agConfig = applicationData.api_configurations.find(c => c.name === "Antigravity AI Pro");
+    const agKey = agConfig ? agConfig.key : 'ag_pro_live_9k2m8L4n7P0vXy1z';
+    
+    const res = await fetch('/api/live-threats', {
+        headers: { 'x-antigravity-key': agKey }
+    });
+    const data = await res.json();
+    if (data.success && data.threats) {
+       data.threats.forEach((t, i) => {
+          setTimeout(() => addRealThreat(t), i * 800);
+       });
+    }
+  } catch(e) {
+    console.warn("Live threats feed unavailable", e);
   }
 }
 
-function addRandomThreat() {
+function addRealThreat(threatData) {
   const threatFeed = document.getElementById('threatFeed');
   if (!threatFeed) return;
 
+  // Mapeamos el botnet C2 al estilo visual de Kaspersky
   const threatTypes = applicationData.kaspersky_map_style.threat_types;
-  const locations = ['Nueva York', 'Londres', 'Tokio', 'Moscú', 'Beijing', 'São Paulo', 'Berlín', 'París'];
-
-  let randomThreat;
-  // Si hay filtro activo, intentamos generar una amenaza de ese tipo para que el feed siga moviéndose
-  if (window.currentThreatFilter && window.currentThreatFilter !== 'all') {
-    const specificThreat = threatTypes.find(t => t.name.toLowerCase() === window.currentThreatFilter);
-    randomThreat = specificThreat || threatTypes[Math.floor(Math.random() * threatTypes.length)];
-  } else {
-    randomThreat = threatTypes[Math.floor(Math.random() * threatTypes.length)];
-  }
-
-  const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+  let visualThreat = threatTypes.find(t => t.name.toLowerCase().includes('botnet') || t.name.toLowerCase().includes('malw')) || threatTypes[0];
 
   const threatItem = document.createElement('div');
-  threatItem.className = `threat-feed-item threat-${randomThreat.name.toLowerCase()}`;
-  threatItem.style.borderLeftColor = randomThreat.color;
+  threatItem.className = `threat-feed-item threat-${visualThreat.name.toLowerCase()}`;
+  threatItem.style.borderLeftColor = visualThreat.color;
   threatItem.style.cursor = 'pointer';
 
-  // Ocultar si se generó y no machea el filtro (fallback)
   if (window.currentThreatFilter && window.currentThreatFilter !== 'all') {
-    if (randomThreat.name.toLowerCase() !== window.currentThreatFilter) {
+    if (visualThreat.name.toLowerCase() !== window.currentThreatFilter) {
       threatItem.style.display = 'none';
     }
   }
 
   threatItem.innerHTML = `
-    <div class="threat-feed-icon" style="color: ${randomThreat.color};">
-      <i class="fas fa-shield-alt"></i>
+    <div class="threat-feed-icon" style="color: ${visualThreat.color};">
+      <i class="fas fa-biohazard"></i>
     </div>
     <div class="threat-feed-content">
-      <div class="threat-feed-type">${randomThreat.name} detectado</div>
-      <div class="threat-feed-details">Origen: ${randomLocation} | Severidad: Alta</div>
+      <div class="threat-feed-type">C2 Obj: ${threatData.ip}</div>
+      <div class="threat-feed-details">Origen: ${threatData.city || threatData.country} | ISP: ${(threatData.org||'Unknown').substring(0, 15)}</div>
       <div class="threat-feed-time">${new Date().toLocaleTimeString()}</div>
     </div>
   `;
 
-  // Añadir evento click al item del feed
   threatItem.addEventListener('click', () => {
-    showThreatDetails({ city: randomLocation, type: randomThreat.name }, randomThreat);
+    showThreatDetails({ city: threatData.city || threatData.country, type: 'C2 Botnet' }, visualThreat);
+    // Move map POV 
+    if (window.threatMapInstance && threatData.lat && threatData.lng) {
+        window.threatMapInstance.pointOfView({ lat: threatData.lat, lng: threatData.lng, altitude: 1.5 }, 1000);
+    }
   });
 
   threatFeed.insertBefore(threatItem, threatFeed.firstChild);
 
-  // Keep only last 10 items
   while (threatFeed.children.length > 10) {
     threatFeed.removeChild(threatFeed.lastChild);
   }
@@ -1881,22 +1888,39 @@ function initializeIntelligenceSearch() {
         }
       }, 800);
 
-      // 2. Simular tiempo de carga (3.5 segundos)
-      setTimeout(() => {
+      // 2. Llamada a la API real de inteligencia
+      const agConfig = applicationData.api_configurations.find(c => c.name === "Antigravity AI Pro");
+      const agKey = agConfig ? agConfig.key : 'ag_pro_live_9k2m8L4n7P0vXy1z';
+      
+      fetch(`/api/intelligence?target=${encodeURIComponent(target)}`, {
+        headers: { 'x-antigravity-key': agKey }
+      })
+      .then(res => res.json())
+      .then(data => {
         clearInterval(statusInterval);
         loader.classList.add('hidden');
         searchBtn.disabled = false;
 
-        populateIntelligenceResults(target);
+        if (!data.success) {
+          showNotification('❌ Error: ' + (data.error || 'Fallo en la consulta API'), 'error');
+          return;
+        }
+
+        populateIntelligenceResults(data);
 
         // Revelar contenedor de resultados
         resultsContainer.classList.remove('hidden');
 
         // Scroll suave hasta los resultados
         resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showNotification('✅ Análisis completado con éxito', 'success');
-
-      }, 3500);
+        showNotification('✅ Análisis en directo completado con éxito', 'success');
+      })
+      .catch(err => {
+        clearInterval(statusInterval);
+        loader.classList.add('hidden');
+        searchBtn.disabled = false;
+        showNotification('❌ Error de conexión al recopilar inteligencia', 'error');
+      });
     });
 
     // Permitir "Enter" en el input
@@ -1906,13 +1930,13 @@ function initializeIntelligenceSearch() {
   }
 }
 
-function populateIntelligenceResults(target) {
+function populateIntelligenceResults(apiData) {
+  const target = apiData.target;
+  const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(target);
+  const riskScore = apiData.riskScore || 0;
+  
   // Rellenamos el nombre del objetivo
   document.getElementById('reportTargetName').textContent = target;
-
-  // Generamos datos aleatorios creíbles para The Threat
-  const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(target);
-  const riskScore = Math.floor(Math.random() * 60) + 40; // 40 a 100
 
   // UI Elements
   const scoreVal = document.getElementById('intelRiskScore');
@@ -1932,94 +1956,69 @@ function populateIntelligenceResults(target) {
   }, 20);
 
   let threatColor = '#10b981'; // Verde
-  let levelTxt = 'BAJO';
-  let verdict = `El objetivo analizado (${target}) no muestra indicadores de compromiso en las fuentes públicas. El tráfico asociado es benigno.`;
-
-  if (riskScore >= 80) {
+  
+  if (riskScore >= 70) {
     threatColor = '#ef4444'; // Rojo
-    levelTxt = 'CRÍTICO';
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 20px ${threatColor}`;
-    riskDesc.textContent = "El objetivo está clasificado como una amenaza persistente avanzada (APT) o infraestructura maliciosa activa.";
-    verdict = `⚠️ ALERTA GRAVE: El modelo neuronal ha detectado que ${target} está listado en 14 repositorios de malware y fue usado en una campaña de Ransomware recientemente. Aísle cualquier sistema conectado a este nodo inmediatamente.`;
     document.getElementById('dataDarkWeb').className = "dark-web-alert danger";
-    document.getElementById('dataDarkWeb').innerHTML = "<i class='fas fa-skull'></i> 142 menciones encontradas en foros rusos (Exploit.in, XSS). Posible venta de credenciales.";
-  } else if (riskScore >= 60) {
+    document.getElementById('dataDarkWeb').innerHTML = "<i class='fas fa-skull'></i> Múltiples indicadores de riesgo detectados en directo.";
+  } else if (riskScore >= 40) {
     threatColor = '#f59e0b'; // Naranja
-    levelTxt = 'MEDIO / ALTO';
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 15px ${threatColor}`;
-    riskDesc.textContent = "Actividad sospechosa detectada. El objetivo podría estar involucrado en escaneos masivos o distribución de Adware.";
-    verdict = `El objetivo presenta un comportamiento inusual. Se recomienda añadir ${target} a la lista de monitoreo o listas grises preventivas.`;
     document.getElementById('dataDarkWeb').className = "dark-web-alert info";
-    document.getElementById('dataDarkWeb').innerHTML = "3 menciones pasivas recuperadas. Sin riesgo inminente.";
+    document.getElementById('dataDarkWeb').innerHTML = "Indicadores sospechosos medios encontrados.";
   } else {
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 10px ${threatColor}`;
-    riskDesc.textContent = "Sin indicios de actividad maliciosa. Reputación limpia según los principales vendors de seguridad.";
     document.getElementById('dataDarkWeb').className = "dark-web-alert info";
-    document.getElementById('dataDarkWeb').innerHTML = "Sin rastro en repositorios Onion.";
+    document.getElementById('dataDarkWeb').innerHTML = "Sin indicadores directos de compromiso.";
   }
 
-  riskLevel.textContent = levelTxt;
+  riskLevel.textContent = apiData.riskLevel;
   riskLevel.style.color = threatColor;
   scoreVal.style.color = threatColor;
-  document.getElementById('aiVerdictBox').textContent = verdict;
+  riskDesc.textContent = "Evaluación automatizada en tiempo real mediante API Antigravity.";
+  document.getElementById('aiVerdictBox').textContent = apiData.verdict;
   document.getElementById('aiVerdictBox').style.borderColor = threatColor;
 
-  // Info Geográfica Aleatorizada
-  const countries = ['Rusia (RU)', 'Estados Unidos (US)', 'Irlanda (IE)', 'China (CN)', 'Brasil (BR)'];
-  document.getElementById('geoCountry').textContent = countries[Math.floor(Math.random() * countries.length)];
-  document.getElementById('geoIsp').textContent = isIp ? 'Desconocido Cloud Hosting LLC' : 'Cloudflare Inc. / AWS';
-  document.getElementById('geoCoords').textContent = `${(Math.random() * 180 - 90).toFixed(4)}, ${(Math.random() * 360 - 180).toFixed(4)}`;
-
-  // Show map pin
+  // Info Geográfica (Real from API)
+  document.getElementById('geoCountry').textContent = apiData.geo?.country || 'Desconocido';
+  document.getElementById('geoIsp').textContent = apiData.geo?.isp || 'Desconocido';
+  document.getElementById('geoCoords').textContent = apiData.geo?.coords || '0, 0';
   document.getElementById('targetPin').classList.remove('hidden');
 
-  // Llenar listas de datos (Huella Digital)
-  document.getElementById('dataPorts').innerHTML = `
-        <li><i class="fas fa-unlock" style="color:#ef4444"></i> 22/tcp (SSH) - OpenSSH 8.2p1</li>
-        <li><i class="fas fa-lock" style="color:#10b981"></i> 80/tcp (HTTP) - Nginx 1.18.0</li>
-        <li><i class="fas fa-lock" style="color:#10b981"></i> 443/tcp (HTTPS)</li>
-    `;
+  // Llenar listas de hallazgos
+  const portsEl = document.getElementById('dataPorts');
+  const cvesEl = document.getElementById('dataCves');
+  const namesEl = document.getElementById('dataNames');
+  
+  portsEl.innerHTML = '';
+  cvesEl.innerHTML = '';
+  namesEl.innerHTML = '';
 
-  if (riskScore >= 60) {
-    document.getElementById('dataCves').innerHTML = `
-            <li><span style="color:#ef4444">CVE-2021-34527</span> (PrintNightmare) - CVSS 8.8</li>
-            <li><span style="color:#f59e0b">CVE-2023-38039</span> (HTTP Denial of Service)</li>
-        `;
-  } else {
-    document.getElementById('dataCves').innerHTML = `<li>No se reportaron vulnerabilidades conocidas.</li>`;
-  }
+  apiData.findings.forEach(f => {
+    let colorText = f.status === 'danger' ? '#ef4444' : f.status === 'warning' ? '#f59e0b' : '#10b981';
+    const li = `<li><strong style="color:${colorText};">[${f.tool}]</strong> ${f.result} <span style="font-size: 0.85em; color: #64748b">(${f.raw})</span></li>`;
+    if (f.tool === 'GeoLocation') portsEl.innerHTML += li;
+    else if (f.tool === 'Domain Age') cvesEl.innerHTML += li;
+    else namesEl.innerHTML += li;
+  });
 
-  if (!isIp) {
-    document.getElementById('dataNames').innerHTML = `
-            <li>mail.${target} (A)</li>
-            <li>vpn.${target} (CNAME)</li>
-            <li>dev.${target} (A)</li>
-        `;
-  } else {
-    document.getElementById('dataNames').innerHTML = `<li>No hay resolución DNS / CNAME pasiva.</li>`;
-  }
+  if (!portsEl.innerHTML) portsEl.innerHTML = '<li>Sin anomalías de red detectadas.</li>';
+  if (!cvesEl.innerHTML) cvesEl.innerHTML = '<li>Sin riesgo estructural.</li>';
+  if (!namesEl.innerHTML) namesEl.innerHTML = '<li>Sin asociaciones de nombres anómalas.</li>';
 
-  // Guardar resultados detallados en el estado global para los reportes
+  // Guardar resultados detallados
   OSINTApp.searchResults = {
     target: target,
     timestamp: new Date().toISOString(),
     riskScore: riskScore,
-    riskLevel: levelTxt,
-    verdict: verdict,
-    geo: {
-      country: document.getElementById('geoCountry').textContent,
-      isp: document.getElementById('geoIsp').textContent,
-      coords: document.getElementById('geoCoords').textContent
-    },
-    findings: [
-      { tool: 'Port Scanner', result: '22/tcp, 80/tcp, 443/tcp abiertos', status: 'critical', raw: 'OpenSSH 8.2p1, Nginx 1.18.0 detected' },
-      { tool: 'CVE Analysis', result: riskScore >= 60 ? 'CVE-2021-34527 detectado' : 'No se detectaron vulnerabilidades críticas', status: riskScore >= 60 ? 'danger' : 'success', raw: riskScore >= 60 ? 'CVSS 8.8 (PrintNightmare)' : 'Clean scan' },
-      { tool: 'Dark Web Scan', result: riskScore >= 80 ? '142 menciones en foros' : 'Sin presencia detectada', status: riskScore >= 80 ? 'danger' : 'info', raw: riskScore >= 80 ? 'Exploit.in, XSS mentions found' : 'No onion records' },
-      { tool: 'DNS/Whois', result: isIp ? 'Hosting desconocido' : 'Cloudflare/AWS detectado', status: 'info', raw: isIp ? 'Reverse DNS not available' : 'CNAME: vpn.' + target }
-    ]
+    riskLevel: apiData.riskLevel,
+    verdict: apiData.verdict,
+    geo: apiData.geo,
+    findings: apiData.findings
   };
 }
 
@@ -2414,12 +2413,20 @@ function openInlineToolPanel(toolData) {
     formArea.innerHTML = formHTML;
   }
 
-  // Wire up Execute button
+  // Wire up Execute button and Form Submit
   const execBtn = document.getElementById('inlinePanelExecBtn');
+  const form = document.getElementById('inlineToolForm');
   if (execBtn) {
     const newBtn = execBtn.cloneNode(true);
     execBtn.parentNode.replaceChild(newBtn, execBtn);
     newBtn.addEventListener('click', () => executeInlineTool(toolData));
+  }
+
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      executeInlineTool(toolData);
+    });
   }
 
   // Show panel
@@ -2579,6 +2586,11 @@ async function executeInlineTool(toolData) {
     showNotification(`❌ ${err.message}`, 'error');
   } finally {
     if (execBtn) { execBtn.disabled = false; execBtn.innerHTML = '<i class="fas fa-play"></i> Ejecutar'; }
+    // Auto-scroll to results after rendering
+    setTimeout(() => {
+      const executionsContainer = document.getElementById('toolInlinePanel');
+      if (executionsContainer) executionsContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   }
 }
 

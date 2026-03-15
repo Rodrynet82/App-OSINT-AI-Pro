@@ -37,12 +37,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = process.env.WHOIS_API_KEY || 'demo';
-
     const response = await fetch(
-      `https://www.whoisxmlapi.com/whoisserver/WhoisService?apiKey=${apiKey}&domainName=${encodeURIComponent(domain)}&outputFormat=JSON&slFormat=1`,
+      `https://networkcalc.com/api/dns/whois/${encodeURIComponent(domain)}`,
       {
         method: 'GET',
+        headers: { 'User-Agent': 'OSINTAIPro/3.0' },
         timeout: 10000
       }
     );
@@ -53,27 +52,27 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (data.WhoisRecord) {
+    if (data.status === 'OK' && data.whois) {
       return res.status(200).json({
         service: 'WHOIS',
         domain,
         data: {
-          registrar: data.WhoisRecord.registrarName || 'N/A',
-          registrationDate: data.WhoisRecord.createdDate || 'N/A',
-          expirationDate: data.WhoisRecord.expiresDate || 'N/A',
-          updatedDate: data.WhoisRecord.updatedDate || 'N/A',
-          nameServers: data.WhoisRecord.nameServers || [],
-          registrantName: data.WhoisRecord.registrantName || 'N/A',
-          registrantEmail: data.WhoisRecord.registrantEmail || 'N/A',
-          status: data.WhoisRecord.status || 'active',
-          tld: data.WhoisRecord.tld || 'N/A'
+          registrar: data.whois.registrar || 'N/A',
+          registrationDate: data.whois.creation_date || 'N/A',
+          expirationDate: data.whois.registrar_registration_expiration_date || 'N/A',
+          updatedDate: data.whois.updated_date || 'N/A',
+          nameServers: data.whois.name_servers || [],
+          registrantName: data.whois.registrant?.name || 'Redactado/Provacy',
+          registrantEmail: data.whois.registrant?.email || 'N/A',
+          status: data.whois.domain_status || 'active',
+          tld: domain.split('.').pop()
         },
         timestamp: new Date().toISOString(),
         success: true
       });
     } else {
       return res.status(404).json({
-        error: 'Domain not found',
+        error: 'Domain not found or no WHOIS data',
         code: 'DOMAIN_NOT_FOUND',
         domain
       });
