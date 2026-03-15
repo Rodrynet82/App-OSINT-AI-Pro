@@ -2519,15 +2519,15 @@ async function executeInlineTool(toolData) {
         endpoint = `/api/virustotal?hash=${encodeURIComponent(params.hash)}`; break;
       // ── New real API endpoints ──
       case 'SSL Checker':
-        endpoint = `/api/ssl?domain=${encodeURIComponent(params.domain)}`; break;
+        endpoint = `/api/web-tools?action=ssl&domain=${encodeURIComponent(params.domain)}`; break;
       case 'Port Scanner':
         endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
       case 'HTTP Headers':
-        endpoint = `/api/headers?url=${encodeURIComponent(params.url)}`; break;
+        endpoint = `/api/web-tools?action=headers&url=${encodeURIComponent(params.url)}`; break;
       case 'Email Verifier':
-        endpoint = `/api/emailverify?email=${encodeURIComponent(params.email)}`; break;
+        endpoint = `/api/mail-tools?action=verify&email=${encodeURIComponent(params.email)}`; break;
       case 'SPF/DKIM Check':
-        endpoint = `/api/spfdkim?domain=${encodeURIComponent(params.domain)}`; break;
+        endpoint = `/api/mail-tools?action=spfdkim&domain=${encodeURIComponent(params.domain)}`; break;
       case 'Subdomain Finder':
         endpoint = `/api/subdomains?domain=${encodeURIComponent(params.domain)}`; break;
       case 'Traceroute':
