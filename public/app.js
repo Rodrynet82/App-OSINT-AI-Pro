@@ -1463,39 +1463,9 @@ function initializeKasperskyMap() {
       return;
     }
 
-    // Configurar localizaciones base para conexiones
-    const N = 20;
-    const arcsData = [...Array(N).keys()].map(() => ({
-      startLat: (Math.random() - 0.5) * 180,
-      startLng: (Math.random() - 0.5) * 360,
-      endLat: (Math.random() - 0.5) * 180,
-      endLng: (Math.random() - 0.5) * 360,
-      color: applicationData.kaspersky_map_style.threat_types[Math.floor(Math.random() * 4)].color
-    }));
-
-    // Localizaciones de anillos (impactos)
+    // Configurar localizaciones base vacías (se llenarán con datos reales)
+    const arcsData = [];
     const ringsData = [];
-    const threatLocations = [
-      { lat: 40.7128, lng: -74.0060, city: 'Nueva York', type: 'DDS' },
-      { lat: 51.5074, lng: -0.1278, city: 'Londres', type: 'MAV' },
-      { lat: 35.6762, lng: 139.6503, city: 'Tokio', type: 'OAS' },
-      { lat: 55.7558, lng: 37.6176, city: 'Moscú', type: 'NAV' },
-      { lat: 39.9042, lng: 116.4074, city: 'Beijing', type: 'IDS' },
-      { lat: -23.5505, lng: -46.6333, city: 'São Paulo', type: 'DDS' },
-      { lat: 52.5200, lng: 13.4050, city: 'Berlín', type: 'MAV' }
-    ];
-
-    threatLocations.forEach(loc => {
-      const typeInfo = applicationData.kaspersky_map_style.threat_types.find(t => t.name === loc.type) || applicationData.kaspersky_map_style.threat_types[0];
-      ringsData.push({
-        lat: loc.lat,
-        lng: loc.lng,
-        maxR: Math.random() * 5 + 3,
-        propagationSpeed: Math.random() * 2 + 1,
-        repeatPeriod: Math.random() * 1000 + 500,
-        color: typeInfo.color
-      });
-    });
 
     // Guardar referencia
     window.threatMapInstance = Globe()
@@ -1529,19 +1499,16 @@ function initializeKasperskyMap() {
     window.threatMapInstance.pointOfView({ altitude: 1.8 });
 
     // Handle clicks directos en el globo (onGlobeClick)
-    window.threatMapInstance.onGlobeClick(({ lat, lng }) => {
-      const fakeCountries = ['Rusia', 'Estados Unidos', 'China', 'Irán', 'Alemania', 'Brasil', 'India', 'Corea del Norte', 'Reino Unido', 'Francia'];
-      const randomCountry = fakeCountries[Math.floor(Math.random() * fakeCountries.length)];
-
+    window.threatMapInstance.onGlobeClick(async ({ lat, lng }) => {
       const modalBody = document.getElementById('analysisModalBody');
       const modalTitle = document.querySelector('#analysisModal .modal-header h3');
       if (modalBody && modalTitle) {
         modalTitle.innerHTML = `<i class="fas fa-satellite" style="color: #39ff14"></i> Telemetría de Ubicación`;
         modalBody.innerHTML = `
                 <div style="padding: 20px; text-align: center;">
-                    <h2 style="color: #f8fafc; margin-bottom: 5px;">Origen Estimado: ${randomCountry}</h2>
+                    <h2 id="mapClickCountry" style="color: #f8fafc; margin-bottom: 5px;">Origen Estimado: Resolviendo...</h2>
                     <p style="color: #94a3b8; font-family: monospace; font-size: 14px; margin-bottom: 20px;">Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)}</p>
-                    <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">Se ha detectado actividad inusual saliente desde este nodo geoespacial. El sistema OSINT AI está interceptando paquetes para determinar la naturaleza de la amenaza.</p>
+                    <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">Se ha detectado actividad inusual en este nodo geoespacial. El sistema OSINT AI está interceptando paquetes para determinar la naturaleza de la amenaza.</p>
                     <div style="margin-top: 15px; padding: 15px; background: rgba(57, 255, 20, 0.1); border-radius: 8px; border-left: 4px solid #39ff14;">
                         <i class="fas fa-radar" style="color: #39ff14;"></i> Iniciando análisis profundo de red...
                     </div>
@@ -1556,29 +1523,49 @@ function initializeKasperskyMap() {
           if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
         }
         window.threatMapInstance.pointOfView({ lat, lng, altitude: 0.6 }, 1000);
+
+        // Fetch real country for clicked coordinates
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+            const data = await res.json();
+            const country = data.address?.country || 'Ubicación Oceánica / Desconocida';
+            const countryEl = document.getElementById('mapClickCountry');
+            if (countryEl) countryEl.innerHTML = `Origen Estimado: ${country}`;
+        } catch(e) {
+            console.warn("Reverse Geocoding failed", e);
+            const countryEl = document.getElementById('mapClickCountry');
+            if (countryEl) countryEl.innerHTML = `Origen Estimado: Desconocido`;
+        }
       }
     });
 
-    // Box de info objetivo en vivo
+    // Box de info objetivo en vivo - Conectarlo a los últimos datos reales
     const liveCountryEl = document.getElementById('liveTargetCountry');
     const liveThreatEl = document.getElementById('liveTargetThreat');
     if (liveCountryEl && liveThreatEl) {
       setInterval(() => {
-        const countries = ['Rusia', 'EE.UU.', 'China', 'Brasil', 'India', 'Reino Unido', 'Alemania', 'Irán', 'Sudáfrica', 'Japón', 'Australia'];
-        const threats = [
-          'Ataque DDoS en puerto 443', 'Escaneo masivo de puertos TCP',
-          'Infección Botnet detectada', 'Exfiltración de datos sospechosa',
-          'Intento de Login por Fuerza Bruta', 'Tráfico C&C identificado'
-        ];
+        // Tomar el último feed real
+        const feedContainer = document.getElementById('threatFeed');
+        if (feedContainer && feedContainer.children.length > 0) {
+           const firstItem = feedContainer.children[0];
+           const details = firstItem.querySelector('.threat-feed-details')?.textContent || '';
+           const typeStr = firstItem.querySelector('.threat-feed-type')?.textContent || '';
+           
+           // Extraer país del string "Origen: X | ISP: Y"
+           const countryMatch = details.match(/Origen:\s*(.*?)\s*\|/);
+           if (countryMatch) {
+               liveCountryEl.textContent = countryMatch[1];
+           }
+           if (typeStr) {
+               liveThreatEl.textContent = typeStr;
+           }
 
-        liveCountryEl.textContent = countries[Math.floor(Math.random() * countries.length)];
-        liveThreatEl.textContent = threats[Math.floor(Math.random() * threats.length)];
-
-        // Pequeño efecto flash en la caja
-        const box = liveCountryEl.parentElement;
-        box.style.borderColor = '#39ff14';
-        setTimeout(() => { box.style.borderColor = 'rgba(57, 255, 20, 0.3)'; }, 400);
-      }, 3500); // Actualizar cada 3.5s
+           // Pequeño efecto flash en la caja
+           const box = liveCountryEl.parentElement;
+           box.style.borderColor = '#39ff14';
+           setTimeout(() => { box.style.borderColor = 'rgba(57, 255, 20, 0.3)'; }, 400);
+        }
+      }, 3500); // Actualizar cada 3.5s si hay nuevos en la lista superior
     }
 
     // Handle window resize
