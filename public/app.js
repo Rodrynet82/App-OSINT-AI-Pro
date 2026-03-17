@@ -2917,7 +2917,7 @@ async function executeInlineTool(toolData) {
       case 'Traceroute':
         endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
       case 'Shodan Search':
-        endpoint = `/api/portscan?target=${encodeURIComponent(params.query)}`; break;
+        endpoint = `/api/geo?action=shodan&query=${encodeURIComponent(params.query)}`; break;
       case 'Geofence IP Tracker':
         endpoint = `/api/geo?action=geosearch&location=${encodeURIComponent(params.location || '')}&lat=${encodeURIComponent(params.lat || '')}&lon=${encodeURIComponent(params.lon || '')}&radius=${encodeURIComponent(params.radius || '5')}`; break;
       default:

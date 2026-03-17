@@ -54,26 +54,52 @@ export default async function handler(req, res) {
     }
   }
 
-  // ACTION: GEOFENCE SEARCH (shodan)
-  if (action === 'geosearch') {
+  // ACTION: GEOFENCE SEARCH / GENERAL SHODAN (shodan)
+  if (action === 'geosearch' || action === 'shodan') {
     const SHODAN_API_KEY = process.env.SHODAN_API_KEY || process.env.SHODAN_KEY;
     if (!SHODAN_API_KEY || SHODAN_API_KEY === 'demo') {
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        error: 'Shodan API Key no configurada o es "demo".', 
-        details: 'Para usar esta herramienta en local, añade SHODAN_API_KEY=tu_clave en el archivo .env. Para producción, añádela en Vercel -> Settings -> Environment Variables.'
+        error: 'Shodan API Key no configurada o es "demo".',
+        details: 'Para usar esta herramienta en local, añade SHODAN_API_KEY=tu_clave en el archivo .env.'
       });
     }
 
-    let query = '';
-    if (lat && lon) query = `geo:${lat},${lon},${radius}`;
-    else if (location) query = location.includes(',') ? `location:"${location}"` : `city:"${location}"`;
-    else return res.status(400).json({ error: 'Location or Coords required' });
+    let query = req.query.query || '';
+
+    // Si no hay query explícita, la construimos desde los parámetros de geofencing
+    if (!query) {
+      if (lat && lon) {
+        // Formato geo:LAT,LONG,RADIUS (sin espacios, radio opcional en km)
+        const rVal = radius ? (parseInt(radius) || 5) : 5;
+        // Importante: Shodan prefiere geo:"lat,lon,radius" o geo:lat,lon en algunos casos
+        query = `geo:${lat.trim()},${lon.trim()},${rVal}`;
+      } else if (location) {
+        const parts = location.split(',').map(p => p.trim());
+        if (parts.length > 1) {
+          // Si hay coma, asumimos City, Country Code (ej: Madrid, ES)
+          // Shodan usa filtros city:"name" y country:"CC"
+          query = `city:"${parts[0]}" country:"${parts[1].substring(0,2).toUpperCase()}"`;
+        } else {
+          // Búsqueda simple por ciudad
+          query = `city:"${location}"`;
+        }
+      }
+    }
+
+    if (!query) return res.status(400).json({ error: 'Faltan parámetros de búsqueda (query, location o coords)', code: 'MISSING_PARAMS' });
 
     try {
+      // Usamos el endpoint de búsqueda de Shodan
       const apiUrl = `https://api.shodan.io/shodan/host/search?key=${SHODAN_API_KEY}&query=${encodeURIComponent(query)}&facets=city,org,port`;
+
       const response = await fetch(apiUrl);
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || `Shodan API error: ${response.status}`);
+      }
+
       const results = (data.matches || []).map(item => ({
         ip: item.ip_str,
         port: item.port,
@@ -81,17 +107,21 @@ export default async function handler(req, res) {
         city: item.location?.city || 'N/A',
         country: item.location?.country_name || 'N/A',
         os: item.os || 'N/A',
-        vulnerability: item.vulns ? true : false
+        vulnerability: item.vulns ? true : false,
+        hostnames: item.hostnames || []
       }));
+
       return res.status(200).json({
         success: true,
-        service: 'Shodan Geofence',
+        service: 'Shodan OSINT',
         query,
         total: data.total || 0,
-        results: results.slice(0, 50)
+        results: results.slice(0, 50),
+        timestamp: new Date().toISOString()
       });
     } catch (e) {
-      return res.status(500).json({ error: e.message });
+      console.error('Shodan Error:', e);
+      return res.status(500).json({ success: false, error: e.message });
     }
   }
 
