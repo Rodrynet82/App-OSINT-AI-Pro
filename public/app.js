@@ -2885,14 +2885,14 @@ async function executeInlineTool(toolData) {
 
     switch (toolData.name) {
       case 'WHOIS':
-        endpoint = `/api/whois?domain=${encodeURIComponent(params.domain)}`; break;
+        endpoint = `/api/domain?action=whois&domain=${encodeURIComponent(params.domain)}`; break;
       case 'DNS Lookup':
       case 'MX Records':
-        const dnsType = params.type || 'MX';
-        endpoint = `/api/dns?domain=${encodeURIComponent(params.domain)}&type=${encodeURIComponent(dnsType)}`; break;
+        const dnsType = params.type || 'A';
+        endpoint = `/api/domain?action=dns&domain=${encodeURIComponent(params.domain)}&type=${encodeURIComponent(dnsType)}`; break;
       case 'IP Geolocation':
       case 'IP Blacklist Check':
-        endpoint = `/api/ipinfo?ip=${encodeURIComponent(params.ip)}`; break;
+        endpoint = `/api/geo?action=ipinfo&ip=${encodeURIComponent(params.ip)}`; break;
       case 'URL Scanner':
         endpoint = `/api/virustotal?url=${encodeURIComponent(params.url)}`; break;
       case 'Domain Reputation':
@@ -2913,13 +2913,13 @@ async function executeInlineTool(toolData) {
       case 'SPF/DKIM Check':
         endpoint = `/api/mail-tools?action=spfdkim&domain=${encodeURIComponent(params.domain)}`; break;
       case 'Subdomain Finder':
-        endpoint = `/api/subdomains?domain=${encodeURIComponent(params.domain)}`; break;
+        endpoint = `/api/domain?action=subdomains&domain=${encodeURIComponent(params.domain)}`; break;
       case 'Traceroute':
         endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
       case 'Shodan Search':
         endpoint = `/api/portscan?target=${encodeURIComponent(params.query)}`; break;
       case 'Geofence IP Tracker':
-        endpoint = `/api/geosearch?location=${encodeURIComponent(params.location || '')}&lat=${encodeURIComponent(params.lat || '')}&lon=${encodeURIComponent(params.lon || '')}&radius=${encodeURIComponent(params.radius || '5')}`; break;
+        endpoint = `/api/geo?action=geosearch&location=${encodeURIComponent(params.location || '')}&lat=${encodeURIComponent(params.lat || '')}&lon=${encodeURIComponent(params.lon || '')}&radius=${encodeURIComponent(params.radius || '5')}`; break;
       default:
         await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
         result = simulateToolResult(toolData, params);
