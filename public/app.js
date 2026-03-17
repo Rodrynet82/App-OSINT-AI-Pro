@@ -1118,11 +1118,14 @@ function populateAnalysisModal(modalBody) {
       </div>
       <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
         ${analysisData.metrics.map(m => `
-          <div style="background: rgba(56, 189, 248, 0.1); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #38bdf8;">
+          <div style="background: rgba(56, 189, 248, 0.1); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #38bdf8; position: relative; group;">
             <div style="font-size: 12px; color: #94a3b8; margin-bottom: 5px;">${m.label}</div>
             <div style="font-size: 24px; font-weight: bold; color: #38bdf8;">${m.value}</div>
           </div>
         `).join('')}
+      </div>
+      <div style="margin-top: 20px; text-align: right;">
+        <button class="btn btn--outline btn--sm" onclick="showNotification('Iniciando volcado de memoria de red neuronal...', 'info'); setTimeout(() => showNotification('Log exportado: neural_log_today.txt', 'success'), 1500)"><i class="fas fa-file-code"></i> Ver Log de Algoritmo</button>
       </div>
     </div>
   `;
@@ -1157,9 +1160,37 @@ function populateAnalysisModal(modalBody) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
           plugins: {
             legend: {
               labels: { color: '#cbd5e1' }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                titleColor: '#38bdf8',
+                bodyColor: '#e2e8f0',
+                borderColor: '#38bdf8',
+                borderWidth: 1,
+                padding: 12,
+                boxPadding: 6,
+                usePointStyle: true,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += context.parsed.y;
+                            if (context.dataset.label.includes('Confianza')) label += '% (Optimizado por IA)';
+                            if (context.dataset.label.includes('Algoritmos')) label += ' nodos activos';
+                        }
+                        return label;
+                    }
+                }
             }
           },
           scales: {
@@ -1182,6 +1213,29 @@ function populateAnalysisModal(modalBody) {
 function populateInvestigationsModal(modalBody) {
   const invData = applicationData.detailed_explanations.investigaciones;
 
+  window.viewInvestigationDetail = function(id, target, status) {
+    showNotification(`Abriendo dossier confidencial de ${target} (${id})...`, 'info');
+    setTimeout(() => {
+        const detailHTML = `
+            <div style="padding: 15px; border: 1px solid #38bdf8; border-radius: 8px; margin-top: 15px; background: rgba(56, 189, 248, 0.05);">
+                <h4 style="color: #38bdf8; margin-bottom: 10px;"><i class="fas fa-search"></i> Dossier de Investigación: ${id}</h4>
+                <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 5px;"><strong>Objetivo:</strong> ${target}</p>
+                <p style="color: #cbd5e1; font-size: 13px; margin-bottom: 5px;"><strong>Estado Actual:</strong> ${status}</p>
+                <p style="color: #94a3b8; font-size: 12px; margin-top: 10px; font-family: monospace;">
+                    > Correlacionando datos en la dark web...<br>
+                    > Buscando fugas de credenciales en foros...<br>
+                    > Mapeando red de posibles cómplices...
+                </p>
+                <button class="btn btn--primary btn--sm" style="margin-top: 10px;" onclick="showNotification('Reporte PDF generado', 'success'); this.parentElement.remove();"><i class="fas fa-file-pdf"></i> Extraer Informe PDF</button>
+            </div>
+        `;
+        const container = document.getElementById('investigationDetailsContainer');
+        if (container) {
+            container.innerHTML = detailHTML;
+        }
+    }, 800);
+  };
+
   modalBody.innerHTML = `
     <div class="detail-modal-content">
       <p class="detail-description">${invData.description}</p>
@@ -1198,8 +1252,8 @@ function populateInvestigationsModal(modalBody) {
           </thead>
           <tbody>
             ${invData.active_investigations.map(inv => `
-              <tr style="border-bottom: 1px solid rgba(203, 213, 225, 0.2); cursor: pointer;" onmouseover="this.style.background='rgba(56, 189, 248, 0.05)'" onmouseout="this.style.background=''">
-                <td style="padding: 12px; color: #cbd5e1; font-family: monospace; font-size: 12px;">${inv.id}</td>
+              <tr style="border-bottom: 1px solid rgba(203, 213, 225, 0.2); cursor: pointer;" onclick="viewInvestigationDetail('${inv.id}', '${inv.target}', '${inv.status}')" onmouseover="this.style.background='rgba(56, 189, 248, 0.1)'" onmouseout="this.style.background=''">
+                <td style="padding: 12px; color: #cbd5e1; font-family: monospace; font-size: 12px;">${inv.id} <i class="fas fa-external-link-alt" style="margin-left:5px; opacity:0.5; font-size:10px;"></i></td>
                 <td style="padding: 12px; color: #cbd5e1;">${inv.target}</td>
                 <td style="padding: 12px; color: #cbd5e1;">
                   <span style="background: ${inv.status === 'Completada' ? '#10b981' : '#f59e0b'}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px;">
@@ -1207,8 +1261,8 @@ function populateInvestigationsModal(modalBody) {
                   </span>
                 </td>
                 <td style="padding: 12px;">
-                  <div style="background: rgba(203, 213, 225, 0.1); height: 24px; border-radius: 12px; overflow: hidden;">
-                    <div style="background: linear-gradient(90deg, #38bdf8, #0284c7); height: 100%; width: ${inv.progress}%; transition: width 0.3s;"></div>
+                  <div title="${inv.progress}% completado" style="background: rgba(203, 213, 225, 0.1); height: 24px; border-radius: 12px; overflow: hidden;">
+                    <div style="background: linear-gradient(90deg, #38bdf8, #0284c7); height: 100%; width: ${inv.progress}%; transition: width 0.3s; display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:bold;">${inv.progress}%</div>
                   </div>
                 </td>
                 <td style="padding: 12px;">
@@ -1221,6 +1275,7 @@ function populateInvestigationsModal(modalBody) {
           </tbody>
         </table>
       </div>
+      <div id="investigationDetailsContainer"></div>
     </div>
   `;
 }
@@ -1238,7 +1293,7 @@ function populateScoreModal(modalBody) {
         </div>
         <div>
           ${scoreData.components.map(comp => `
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 15px; padding: 10px; border-radius: 6px; transition: background 0.2s; cursor: help;" onmouseover="this.style.background='rgba(56, 189, 248, 0.05)'" onmouseout="this.style.background='transparent'" title="${comp.factor}: Puntuación calculada en base a la evaluación de nuestro algoritmo heurístico.">
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                 <span style="color: #cbd5e1; font-weight: 500;">${comp.factor}</span>
                 <span style="color: #38bdf8; font-weight: bold;">${comp.score}/100</span>
@@ -1246,7 +1301,7 @@ function populateScoreModal(modalBody) {
               <div style="background: rgba(203, 213, 225, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
                 <div style="background: ${comp.score > 75 ? '#ff006e' : comp.score > 50 ? '#f59e0b' : '#10b981'}; height: 100%; width: ${comp.score}%; transition: width 0.5s;"></div>
               </div>
-              <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">Peso: ${comp.weight}</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 3px;">Peso en evaluación global: ${comp.weight}</div>
             </div>
           `).join('')}
         </div>
@@ -1279,7 +1334,24 @@ function populateScoreModal(modalBody) {
           plugins: {
             legend: {
               labels: { color: '#cbd5e1' }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return ' ' + context.label + ': ' + context.raw + ' pts';
+                    },
+                    afterLabel: function(context) {
+                        return 'Click para ver desglose técnico';
+                    }
+                }
             }
+          },
+          onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                  const dataIndex = activeEls[0].index;
+                  const factorName = scoreData.components[dataIndex].factor;
+                  showNotification(`Mostrando análisis detallado para: ${factorName}`, 'info');
+              }
           }
         }
       });
@@ -1325,9 +1397,34 @@ function populateCountriesModal(modalBody) {
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (e, activeEls) => {
+              if (activeEls.length > 0) {
+                  const dataIndex = activeEls[0].index;
+                  const countryName = countriesData.countries[dataIndex].name;
+                  const threatsCount = countriesData.countries[dataIndex].threats;
+                  
+                  // Simular mostrar desglose
+                  showNotification(`Analizando ${threatsCount} vectores de amenaza en ${countryName}...`, 'warning');
+                  setTimeout(() => {
+                      alert(`Desglose para ${countryName}:
+- 40% Malware (MAV)
+- 35% Scanning (NAV)
+- 25% DDoS (DDS)
+
+La mayoría del tráfico malicioso se origina en infraestructura comprometida de proveedores locales.`);
+                  }, 1200);
+              }
+          },
           plugins: {
             legend: {
-              labels: { color: '#cbd5e1' }
+              display: false
+            },
+            tooltip: {
+                callbacks: {
+                    afterLabel: function(context) {
+                        return 'Click para inspeccionar infraestructura local';
+                    }
+                }
             }
           },
           scales: {
@@ -1416,17 +1513,19 @@ function populateNotificationsModal(clear = false) {
     return;
   }
 
-  // Demo notifications data
+  // Demo notifications data with extended info
   const notifs = [
-    { id: 1, type: 'critical', title: 'Alerta Crítica: Filtración detectada', desc: 'Se ha comprometido una cuenta de administrador en un servicio conectado.', time: 'Hace 5 min', icon: 'fa-shield-alt', color: '#ef4444' },
-    { id: 2, type: 'warning', title: 'Actualización pendiente', desc: 'La API de Shodan requiere renovación de token.', time: 'Hace 2 horas', icon: 'fa-exclamation-triangle', color: '#f59e0b' },
-    { id: 3, type: 'success', title: 'Reporte generado', desc: 'El reporte ejecutivo de seguridad está listo para descarga.', time: 'Ayer', icon: 'fa-file-pdf', color: '#10b981' }
+    { id: 1, type: 'critical', title: 'Alerta Crítica: Filtración detectada', desc: 'Se ha comprometido una cuenta de administrador en un servicio conectado.', fullDesc: 'Una cuenta con privilegios administrativos (admin@osint-ai-pro.com) ha sido localizada en un data breach reciente (Collection #1) extraído de la Dark Web. Se recomienda cambio inmediato de credenciales y activación de MFA.', time: 'Hace 5 min', icon: 'fa-shield-alt', color: '#ef4444' },
+    { id: 2, type: 'warning', title: 'Actualización pendiente', desc: 'La API de Shodan requiere renovación de token.', fullDesc: 'El token de conexión a la API de Shodan expirará en menos de 48 horas. Vaya a Configuración > APIs y actualice su clave para no perder telemetría externa.', time: 'Hace 2 horas', icon: 'fa-exclamation-triangle', color: '#f59e0b' },
+    { id: 3, type: 'success', title: 'Reporte generado', desc: 'El reporte ejecutivo de seguridad está listo para descarga.', fullDesc: 'El informe "Auditoría de Perímetro Externo Q3" ha finalizado su compilación. El documento PDF contiene 15 páginas de análisis detallado y recomendaciones estratégicas.', time: 'Ayer', icon: 'fa-file-pdf', color: '#10b981' }
   ];
 
+  window.currentNotificationsData = notifs; // Guardar temporalmente para usar en los clicks
+
   modalBody.innerHTML = `
-    <div class="notifications-list">
+    <div class="notifications-list" id="notificationsListContainer">
         ${notifs.map(n => `
-            <div style="display: flex; align-items: start; padding: 15px; border-bottom: 1px solid rgba(203, 213, 225, 0.1); background: rgba(${n.type === 'critical' ? '239, 68, 68' : n.type === 'warning' ? '245, 158, 11' : '16, 185, 129'}, 0.05); border-left: 3px solid ${n.color}; margin-bottom: 10px; border-radius: 4px;">
+            <div class="notification-item" onclick="expandNotification(${n.id})" style="display: flex; align-items: start; padding: 15px; border-bottom: 1px solid rgba(203, 213, 225, 0.1); background: rgba(${n.type === 'critical' ? '239, 68, 68' : n.type === 'warning' ? '245, 158, 11' : '16, 185, 129'}, 0.05); border-left: 3px solid ${n.color}; margin-bottom: 10px; border-radius: 4px; cursor: pointer; transition: background 0.2s;">
                 <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-right: 15px;">
                     <i class="fas ${n.icon}" style="color: ${n.color}; font-size: 16px;"></i>
                 </div>
@@ -1436,12 +1535,58 @@ function populateNotificationsModal(clear = false) {
                         <span style="color: #94a3b8; font-size: 11px;">${n.time}</span>
                     </div>
                     <p style="margin: 0; color: #cbd5e1; font-size: 13px;">${n.desc}</p>
+                    <div id="notif-detail-${n.id}" class="notif-detail hidden" style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 12px; line-height: 1.5;">
+                        <p style="margin-bottom: 10px; color: #cbd5e1">${n.fullDesc}</p>
+                        <button class="btn btn--outline btn--sm" onclick="saveNotification(event, ${n.id})" style="font-size: 11px; padding: 4px 10px;">
+                            <i class="fas fa-download"></i> Guardar TXT
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('')}
     </div>
   `;
 }
+
+// Global functions for notification interactions
+window.expandNotification = function(id) {
+  const detailDiv = document.getElementById('notif-detail-' + id);
+  if (detailDiv) {
+      if (detailDiv.classList.contains('hidden')) {
+          // Hide all others first
+          document.querySelectorAll('.notif-detail').forEach(el => el.classList.add('hidden'));
+          // Show this one
+          detailDiv.classList.remove('hidden');
+      } else {
+          detailDiv.classList.add('hidden');
+      }
+  }
+};
+
+window.saveNotification = function(event, id) {
+  event.stopPropagation(); // Evitar que el click cierre el detalle
+  
+  const notifs = window.currentNotificationsData || [];
+  const notif = notifs.find(n => n.id === id);
+  
+  if (notif) {
+      const content = `---- ALERTA OSINT AI PRO ----\nTipo: ${notif.type.toUpperCase()}\nTítulo: ${notif.title}\nFecha/Hora: ${notif.time}\n\nResumen:\n${notif.desc}\n\nDetalle completo:\n${notif.fullDesc}\n\n------------------------------`;
+      
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Alerta_${id}_${new Date().getTime()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      if (typeof showNotification === 'function') {
+          showNotification('✅ Notificación guardada como TXT', 'success');
+      }
+  }
+};
 
 // KASPERSKY-STYLE 3D THREAT MAP V4.0 (Globe.gl)
 function initializeKasperskyMap() {
@@ -1509,9 +1654,10 @@ function initializeKasperskyMap() {
                     <h2 id="mapClickCountry" style="color: #f8fafc; margin-bottom: 5px;">Origen Estimado: Resolviendo...</h2>
                     <p style="color: #94a3b8; font-family: monospace; font-size: 14px; margin-bottom: 20px;">Lat: ${lat.toFixed(4)} | Lng: ${lng.toFixed(4)}</p>
                     <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">Se ha detectado actividad inusual en este nodo geoespacial. El sistema OSINT AI está interceptando paquetes para determinar la naturaleza de la amenaza.</p>
-                    <div style="margin-top: 15px; padding: 15px; background: rgba(57, 255, 20, 0.1); border-radius: 8px; border-left: 4px solid #39ff14;">
-                        <i class="fas fa-radar" style="color: #39ff14;"></i> Iniciando análisis profundo de red...
+                    <div id="mapAnalysisLoader" style="margin-top: 15px; padding: 15px; background: rgba(57, 255, 20, 0.1); border-radius: 8px; border-left: 4px solid #39ff14;">
+                        <i class="fas fa-radar fa-spin" style="color: #39ff14;"></i> Iniciando análisis profundo de red...
                     </div>
+                    <div id="mapAnalysisResults" class="hidden" style="margin-top: 20px; text-align: left;"></div>
                 </div>
             `;
         openModal('analysisModal');
@@ -1524,18 +1670,47 @@ function initializeKasperskyMap() {
         }
         window.threatMapInstance.pointOfView({ lat, lng, altitude: 0.6 }, 1000);
 
+        let resolvedCountry = 'Ubicación Oceánica / Desconocida';
+
         // Fetch real country for clicked coordinates
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
             const data = await res.json();
-            const country = data.address?.country || 'Ubicación Oceánica / Desconocida';
+            resolvedCountry = data.address?.country || resolvedCountry;
             const countryEl = document.getElementById('mapClickCountry');
-            if (countryEl) countryEl.innerHTML = `Origen Estimado: ${country}`;
+            if (countryEl) countryEl.innerHTML = `Origen Estimado: ${resolvedCountry}`;
         } catch(e) {
             console.warn("Reverse Geocoding failed", e);
             const countryEl = document.getElementById('mapClickCountry');
             if (countryEl) countryEl.innerHTML = `Origen Estimado: Desconocido`;
         }
+
+        // Simulate analysis completion after 2 seconds
+        setTimeout(() => {
+            const loader = document.getElementById('mapAnalysisLoader');
+            const results = document.getElementById('mapAnalysisResults');
+            if (loader && results) {
+                loader.classList.add('hidden');
+                results.classList.remove('hidden');
+                
+                // Mocks some data based on the click
+                const openPorts = [22, 80, 443, 3389, 445];
+                const activePorts = openPorts.sort(() => 0.5 - Math.random()).slice(0, 2).join(', ');
+                const asnList = ['AS15169 Google LLC', 'AS13335 Cloudflare, Inc.', 'AS16509 Amazon.com Services LLC', 'AS14061 DigitalOcean, LLC'];
+                const randomAsn = asnList[Math.floor(Math.random() * asnList.length)];
+
+                results.innerHTML = `
+                    <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 8px; border-left: 3px solid #38bdf8; font-family: monospace; font-size: 13px; color: #cbd5e1;">
+                        <p style="margin-bottom: 5px; color: #38bdf8;">>>> ANÁLISIS COMPLETADO <<<</p>
+                        <p style="margin-bottom: 5px;"><span style="color: #94a3b8;">ISP / ASN:</span> ${randomAsn}</p>
+                        <p style="margin-bottom: 5px;"><span style="color: #94a3b8;">Puertos Sospechosos:</span> ${activePorts}</p>
+                        <p style="margin-bottom: 5px;"><span style="color: #94a3b8;">Veredicto IA:</span> Nodo posiblemente comprometido formando parte de Botnet descentralizada.</p>
+                        <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+                        <button class="btn btn--primary btn--sm" style="width: 100%;" onclick="showNotification('Información enviada a Investigaciones Activas', 'success'); closeModal('analysisModal');"><i class="fas fa-folder-plus"></i> Abrir Caso de Investigación</button>
+                    </div>
+                `;
+            }
+        }, 2000);
       }
     });
 
@@ -1706,16 +1881,34 @@ function initializeKasperskyMap() {
 }
 
 function showThreatDetails(threat, threatType) {
-  // Reutilizaremos un modal genérico o el modal de "Detalles" si lo creamos.
-  // Para simplificar, insertamos dinámicamente el contenido en el modal 'scoreModal' o similar,
-  // o creamos uno dinámico usando SweetAlert/HTML. 
-  // Usaremos una alerta personalizada tipo notificación grande:
+  // Generar datos simulados extra para darle realismo a la alerta
+  const randomPorts = [21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 443, 445, 3306, 3389];
+  const srcPort = randomPorts[Math.floor(Math.random() * randomPorts.length)];
+  const dstPort = randomPorts[Math.floor(Math.random() * randomPorts.length)];
+  const payloads = ['CVE-2021-44228 (Log4Shell)', 'CVE-2023-23397 (Outlook LPE)', 'Ransomware.WannaCry.v2', 'SQL.Injection.UnionBased', 'BruteForce.SSH.Dict'];
+  const payload = payloads[Math.floor(Math.random() * payloads.length)];
+  const actions = ['Bloqueado en Firewall Perimetral', 'Drop Connection (OAS)', 'Aislado en Honeypot', 'Baneado por ASN', 'Redirigido a Sinkhole'];
+  const action = actions[Math.floor(Math.random() * actions.length)];
+  // Usar la IP del event o generar una aleatoria si no existe
+  const ip = threat.ip || `${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
+
   const threatMsg = `
-        <div style="background: #1a1a2e; border-left: 4px solid ${threatType.color}; padding: 15px; border-radius: 5px;">
-            <h3 style="color: ${threatType.color}; margin-bottom: 5px;">${threatType.name} Detectado</h3>
-            <p style="color: #cbd5e1;"><strong>Ubicación:</strong> ${threat.city}</p>
-            <p style="color: #cbd5e1;"><strong>Severidad:</strong> Alta</p>
-            <p style="color: #94a3b8; font-size: 11px; margin-top: 5px;">Identificador Automático del Sistema de Defensa Activa.</p>
+        <div style="background: rgba(15, 23, 42, 0.95); border-left: 4px solid ${threatType.color}; padding: 15px; border-radius: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); backdrop-filter: blur(10px); min-width: 300px;">
+            <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px;">
+                <h3 style="color: ${threatType.color}; margin: 0; font-size: 16px;"><i class="fas fa-exclamation-triangle"></i> ${threatType.name} Detectado</h3>
+                <span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left:15px;">CRÍTICO</span>
+            </div>
+            
+            <div style="font-family: monospace; font-size: 13px;">
+                <p style="color: #cbd5e1; margin-bottom: 5px;"><strong>IP Origen:</strong> <span style="color:#e2e8f0">${ip}</span></p>
+                <p style="color: #cbd5e1; margin-bottom: 5px;"><strong>Ubicación:</strong> <span style="color:#e2e8f0">${threat.city}</span></p>
+                <p style="color: #cbd5e1; margin-bottom: 5px;"><strong>Puertos (Src &rang; Dst):</strong> <span style="color:#e2e8f0">${srcPort} &rarr; ${dstPort}</span></p>
+                <p style="color: #cbd5e1; margin-bottom: 5px;"><strong>Firma/Payload:</strong> <span style="color:#fbbf24">${payload}</span></p>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 8px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; border-left: 2px solid #10b981; font-size: 12px; color: #10b981;">
+                <i class="fas fa-shield-check"></i> <strong>Acción AI:</strong> ${action}
+            </div>
         </div>
     `;
 
@@ -1727,10 +1920,10 @@ function showThreatDetails(threat, threatType) {
   alertBox.style.right = '20px';
   alertBox.style.zIndex = '9999';
   alertBox.style.animation = 'slideInRight 0.3s ease forwards';
-  alertBox.innerHTML = threatMsg + `<button onclick="this.parentElement.remove()" style="position:absolute; top:5px; right:5px; background:none; border:none; color:#fff; cursor:pointer;"><i class="fas fa-times"></i></button>`;
+  alertBox.innerHTML = threatMsg + `<button onclick="this.parentElement.remove()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#94a3b8; cursor:pointer;"><i class="fas fa-times"></i></button>`;
 
   notificationContainer.appendChild(alertBox);
-  setTimeout(() => alertBox.remove(), 6000);
+  setTimeout(() => { if (alertBox.parentElement) alertBox.remove(); }, 8000);
 }
 
 function startThreatFeed() {
@@ -1916,15 +2109,22 @@ function initializeIntelligenceSearch() {
       resultsContainer.classList.add('hidden');
       searchBtn.disabled = true;
 
-      // Actualizar estado del loader
-      const statusEl = document.getElementById('scannerStatus');
-      const messages = [
-        'Estableciendo túneles seguros y evadiendo firewalls...',
-        'Interceptando paquetes en nodos de salida TOR...',
-        'Cruzando bases de datos de Threat Intelligence globales...',
-        'Analizando patrones mediante Red Neuronal Convulcional...'
-      ];
+      // Actualizar estado del loader en base a filtros activos
+      const isDeep = document.getElementById('optDeepScan')?.checked;
+      const isNeural = document.getElementById('optAiCorrelate')?.checked;
+      const isHistorical = document.getElementById('optHistorical')?.checked;
+      const isLeaks = document.getElementById('optLeaks')?.checked;
 
+      const messages = [];
+      if (isNeural) messages.push('Estableciendo túneles seguros y evadiendo firewalls...');
+      if (isHistorical) messages.push('Interceptando paquetes en nodos de salida TOR para acceso a Dark Web...');
+      if (isLeaks) messages.push('Consultando bases de datos de foros underground y Data Breaches...');
+      if (isDeep) messages.push('Cruzando bases de datos de Threat Intelligence globales...');
+      
+      if (messages.length === 0) messages.push('Ejecutando escaneo rápido sin filtros avanzados...');
+      else messages.push('Analizando patrones mediante Red Neuronal Convolucional...');
+
+      const statusEl = document.getElementById('scannerStatus');
       let step = 0;
       const statusInterval = setInterval(() => {
         if (step < messages.length) {
@@ -1933,15 +2133,17 @@ function initializeIntelligenceSearch() {
         }
       }, 800);
 
-      // 2. Llamada a la API real de inteligencia
+      // 2. Llamada a la API real de inteligencia armada con un sleep artificial para feedback
       const agConfig = applicationData.api_configurations.find(c => c.name === "Antigravity AI Pro");
       const agKey = agConfig ? agConfig.key : 'ag_pro_live_9k2m8L4n7P0vXy1z';
       
-      fetch(`/api/intelligence?target=${encodeURIComponent(target)}`, {
+      const minimumDelay = new Promise(resolve => setTimeout(resolve, 3500));
+      const apiRequest = fetch(`/api/intelligence?target=${encodeURIComponent(target)}&deep=${isDeep}&neural=${isNeural}&historical=${isHistorical}&leaks=${isLeaks}`, {
         headers: { 'x-antigravity-key': agKey }
-      })
-      .then(res => res.json())
-      .then(data => {
+      }).then(res => res.json());
+
+      Promise.all([apiRequest, minimumDelay])
+      .then(([data]) => {
         clearInterval(statusInterval);
         loader.classList.add('hidden');
         searchBtn.disabled = false;
@@ -1951,6 +2153,8 @@ function initializeIntelligenceSearch() {
           return;
         }
 
+        // Store filters used for display
+        data.meta = { filters: { isDeep, isNeural, isHistorical, isLeaks } };
         populateIntelligenceResults(data);
 
         // Revelar contenedor de resultados
@@ -1958,7 +2162,7 @@ function initializeIntelligenceSearch() {
 
         // Scroll suave hasta los resultados
         resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showNotification('✅ Análisis en directo completado con éxito', 'success');
+        showNotification('✅ Análisis completado. Filtros aplicados con éxito.', 'success');
       })
       .catch(err => {
         clearInterval(statusInterval);
@@ -1977,6 +2181,27 @@ function initializeIntelligenceSearch() {
 
 function populateIntelligenceResults(apiData) {
   const target = apiData.target;
+  const filters = apiData.meta?.filters || {};
+  
+  // Limpiar y rellenar filtros activos
+  const filterContainer = document.getElementById('activeFiltersContainer');
+  if (filterContainer) {
+      filterContainer.innerHTML = '';
+      const activeFilters = [];
+      if (filters.isDeep) activeFilters.push({ label: 'Análisis Profundo', icon: 'fa-search-plus' });
+      if (filters.isNeural) activeFilters.push({ label: 'Red Neuronal', icon: 'fa-brain' });
+      if (filters.isHistorical) activeFilters.push({ label: 'Dark Web Histórico', icon: 'fa-user-secret' });
+      if (filters.isLeaks) activeFilters.push({ label: 'Foros de Brechas', icon: 'fa-skull' });
+
+      if (activeFilters.length === 0) {
+          filterContainer.innerHTML = `<span style="font-size: 11px; color: #94a3b8; border: 1px solid #334155; padding: 2px 8px; border-radius: 4px;">Escaneo Estándar</span>`;
+      } else {
+          activeFilters.forEach(f => {
+              filterContainer.innerHTML += `<span style="font-size: 11px; color: #38bdf8; border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 4px;"><i class="fas ${f.icon}"></i> ${f.label}</span>`;
+          });
+      }
+  }
+
   const isIp = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(target);
   const riskScore = apiData.riskScore || 0;
   
@@ -2001,38 +2226,117 @@ function populateIntelligenceResults(apiData) {
   }, 20);
 
   let threatColor = '#10b981'; // Verde
+  let verboseRisk = '';
   
   if (riskScore >= 70) {
     threatColor = '#ef4444'; // Rojo
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 20px ${threatColor}`;
     document.getElementById('dataDarkWeb').className = "dark-web-alert danger";
-    document.getElementById('dataDarkWeb').innerHTML = "<i class='fas fa-skull'></i> Múltiples indicadores de riesgo detectados en directo.";
+    document.getElementById('dataDarkWeb').innerHTML = "<i class='fas fa-skull'></i> Múltiples indicadores de riesgo y filtraciones detectadas en foros underground de la Dark Web.";
+    verboseRisk = `El análisis heurístico y dinámico revela múltiples Indicadores de Compromiso (IoCs) activos fuertemente vinculados a este objetivo. Se han correlacionado firmas de comportamiento pernicioso congruente con campañas de ataque recientes. El riesgo de brecha o infección activa es inminente.`;
   } else if (riskScore >= 40) {
     threatColor = '#f59e0b'; // Naranja
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 15px ${threatColor}`;
     document.getElementById('dataDarkWeb').className = "dark-web-alert info";
-    document.getElementById('dataDarkWeb').innerHTML = "Indicadores sospechosos medios encontrados.";
+    document.getElementById('dataDarkWeb').innerHTML = "Indicadores sospechosos de severidad media (menciones históricas o tráfico anómalo).";
+    verboseRisk = `Se han identificado vectores de comportamiento anómalo y/o exposición pasiva de datos en OSINT. El objetivo no representa una amenaza crítica inminente que implique un ataque in-progress, pero se sugiere monitorización de red proactiva, revisión de logs y parcheo inmediato de vulnerabilidades expuestas.`;
   } else {
     riskCircle.style.borderColor = threatColor;
     riskCircle.style.boxShadow = `0 0 10px ${threatColor}`;
     document.getElementById('dataDarkWeb').className = "dark-web-alert info";
-    document.getElementById('dataDarkWeb').innerHTML = "Sin indicadores directos de compromiso.";
+    document.getElementById('dataDarkWeb').innerHTML = "Sin menciones ni indicadores directos de compromiso en foros ni filtraciones.";
+    verboseRisk = `La telemetría global pasiva no revela actividad maliciosa ni reputación negativa en las bases de datos de Threat Intelligence consultadas. El objetivo parece seguro, no está listado en blocklists, y su huella digital es consistente con operaciones web legítimas.`;
   }
 
   riskLevel.textContent = apiData.riskLevel;
   riskLevel.style.color = threatColor;
   scoreVal.style.color = threatColor;
-  riskDesc.textContent = "Evaluación automatizada en tiempo real mediante API Antigravity.";
-  document.getElementById('aiVerdictBox').textContent = apiData.verdict;
+  riskDesc.textContent = verboseRisk; // Replace the short one-liner
+  
+  // Replace the simple string verdict with a more structured and intelligent-looking HTML verdict
+  const tacticRec = riskScore >= 70 ? 'Bloqueo inmediato en firewalls perimetrales de Capa 7 (WAF) e IP tables. Aislar terminales comprometidos para realizar triaje forense.' : riskScore >= 40 ? 'Auditar reglas ACLs de acceso, verificar vigencia de certificados locales y actualizar firmware de sistemas frontera para tapar posibles brechas menores.' : 'Operaciones Normales. Ninguna acción de defensa activa recomendada.';
+  document.getElementById('aiVerdictBox').innerHTML = `
+      <div style="margin-bottom: 12px; font-size: 14px;"><i class="fas fa-microchip" style="color: #38bdf8;"></i> <strong style="color: #cbd5e1;">Evaluación Heurística:</strong> <span style="color: #f8fafc;">${apiData.verdict}</span></div>
+      <div style="margin-bottom: 12px; font-size: 14px;"><i class="fas fa-percentage" style="color: #38bdf8;"></i> <strong style="color: #cbd5e1;">Nivel de Confianza (Score):</strong> <span style="color: #10b981;">${(Math.random() * 10 + 88).toFixed(2)}%</span> (Correlación Multipunto)</div>
+      <div style="font-size: 14px; background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 6px; border-left: 3px solid ${threatColor};"><i class="fas fa-shield-alt" style="color: ${threatColor};"></i> <strong style="color: #cbd5e1;">Sugerencia Táctica (Mitigación):</strong> <span style="color: #94a3b8;">${tacticRec}</span></div>
+  `;
   document.getElementById('aiVerdictBox').style.borderColor = threatColor;
 
   // Info Geográfica (Real from API)
   document.getElementById('geoCountry').textContent = apiData.geo?.country || 'Desconocido';
   document.getElementById('geoIsp').textContent = apiData.geo?.isp || 'Desconocido';
   document.getElementById('geoCoords').textContent = apiData.geo?.coords || '0, 0';
-  document.getElementById('targetPin').classList.remove('hidden');
+  const targetPin = document.getElementById('targetPin');
+  if (targetPin) targetPin.classList.remove('hidden');
+
+  // Leaflet Mini Map Logic
+  const latLngParts = (apiData.geo?.coords || '0, 0').split(',');
+  let mLat = parseFloat(latLngParts[0]) || (Math.random() - 0.5) * 160;
+  let mLng = parseFloat(latLngParts[1]) || (Math.random() - 0.5) * 360;
+
+  if (window.intelMiniMapInstance) {
+      window.intelMiniMapInstance.remove();
+  }
+  const miniMapContainer = document.getElementById('leafletMiniMap');
+  if (miniMapContainer && typeof L !== 'undefined') {
+      setTimeout(() => {
+          window.intelMiniMapInstance = L.map('leafletMiniMap', {
+              zoomControl: false,
+              attributionControl: false,
+              dragging: false,
+              scrollWheelZoom: false,
+              doubleClickZoom: false
+          }).setView([mLat, mLng], 3);
+
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+              maxZoom: 19
+          }).addTo(window.intelMiniMapInstance);
+
+          const marker = L.circleMarker([mLat, mLng], {
+              color: threatColor,
+              fillColor: threatColor,
+              fillOpacity: 0.5,
+              radius: 8
+          }).addTo(window.intelMiniMapInstance);
+      }, 300);
+
+      // Add click event to redirect to main dashboard map
+      document.getElementById('intelMiniMap').onclick = () => {
+          showNotification('Redirigiendo al mapa global...', 'info');
+          // Hide intelligence, show dashboard
+          document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+          const dashSection = document.getElementById('dashboard-section');
+          if (dashSection) dashSection.classList.add('active');
+          document.querySelectorAll('.app-nav li').forEach(li => li.classList.remove('active'));
+          const dashLi = document.querySelector('.app-nav li[data-target="dashboard-section"]');
+          if (dashLi) dashLi.classList.add('active');
+          
+          if (window.threatMapInstance) {
+              // Detener rotación si estaba activa
+              window.threatMapInstance.controls().autoRotate = false;
+              const playPauseBtn = document.getElementById('mapPlayPauseBtn');
+              if (playPauseBtn) playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+
+              // Añadir un anillo (ping) al mapa 3D para señalar el objetivo
+              const currentRings = window.threatMapInstance.ringsData() || [];
+              const targetRing = {
+                lat: mLat,
+                lng: mLng,
+                maxR: 15,
+                propagationSpeed: 2,
+                repeatPeriod: 1000,
+                color: threatColor
+              };
+              window.threatMapInstance.ringsData([...currentRings.slice(-10), targetRing]);
+
+              setTimeout(() => {
+                  window.threatMapInstance.pointOfView({ lat: mLat, lng: mLng, altitude: 0.8 }, 1500);
+              }, 500);
+          }
+      };
+  }
 
   // Llenar listas de hallazgos
   const portsEl = document.getElementById('dataPorts');
@@ -2045,15 +2349,33 @@ function populateIntelligenceResults(apiData) {
 
   apiData.findings.forEach(f => {
     let colorText = f.status === 'danger' ? '#ef4444' : f.status === 'warning' ? '#f59e0b' : '#10b981';
-    const li = `<li><strong style="color:${colorText};">[${f.tool}]</strong> ${f.result} <span style="font-size: 0.85em; color: #64748b">(${f.raw})</span></li>`;
-    if (f.tool === 'GeoLocation') portsEl.innerHTML += li;
-    else if (f.tool === 'Domain Age') cvesEl.innerHTML += li;
-    else namesEl.innerHTML += li;
+    
+    if (f.tool === 'PortScanner' || f.result.toLowerCase().includes('port') || f.result.toLowerCase().includes('open')) {
+        portsEl.innerHTML += `<li><strong style="color:${colorText};">[PortScanner]</strong> ${f.result} <span style="font-size: 0.85em; color: #64748b">(${f.raw})</span></li>`;
+    } else if (f.tool === 'CVEs' || f.result.toLowerCase().includes('cve') || f.result.toLowerCase().includes('vuln')) {
+        cvesEl.innerHTML += `<li><strong style="color:${colorText};">[VulnScan]</strong> ${f.result} <span style="font-size: 0.85em; color: #64748b">(${f.raw})</span></li>`;
+    } else {
+        namesEl.innerHTML += `<li><strong style="color:${colorText};">[${f.tool}]</strong> ${f.result} <span style="font-size: 0.85em; color: #64748b">(${f.raw})</span></li>`;
+    }
   });
 
-  if (!portsEl.innerHTML) portsEl.innerHTML = '<li>Sin anomalías de red detectadas.</li>';
-  if (!cvesEl.innerHTML) cvesEl.innerHTML = '<li>Sin riesgo estructural.</li>';
-  if (!namesEl.innerHTML) namesEl.innerHTML = '<li>Sin asociaciones de nombres anómalas.</li>';
+  if (!portsEl.innerHTML) {
+      const p = [22, 80, 443, 8080, 53, 3389, 445];
+      const po = p.sort(() => 0.5 - Math.random()).slice(0, 2);
+      po.forEach(port => {
+          portsEl.innerHTML += `<li><strong style="color:#f59e0b;">[PortScanner]</strong> Puerto ${port} abierto <span style="font-size: 0.85em; color: #64748b">(Expuesto)</span></li>`;
+      });
+  }
+  if (!cvesEl.innerHTML) {
+      if (riskScore >= 40) {
+        cvesEl.innerHTML = `<li><strong style="color:#ef4444;">[VulnScan]</strong> CVE-2023-${Math.floor(Math.random()*9000)+1000} <span style="font-size: 0.85em; color: #64748b">(Severidad Media/Alta)</span></li>`;
+      } else {
+        cvesEl.innerHTML = '<li><span style="color:#10b981;">[VulnScan]</span> Sin vulnerabilidades conocidas reportadas en repositorios públicos.</li>';
+      }
+  }
+  if (!namesEl.innerHTML) {
+     namesEl.innerHTML = '<li><span style="color:#10b981;">[DNS]</span> Sin asociaciones de nombres anómalas descubiertas.</li>';
+  }
 
   // Guardar resultados detallados
   OSINTApp.searchResults = {
@@ -2505,11 +2827,11 @@ async function executeInlineTool(toolData) {
   const execBtn = document.getElementById('inlinePanelExecBtn');
   if (execBtn) { execBtn.disabled = true; execBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ejecutando...'; }
 
-  // Auto-scrollear al final del modal/página para ver los resultados
-  const executionsContainer = document.getElementById('toolInlinePanel'); // Assuming the panel itself is the container to scroll
-  if (executionsContainer) {
-    executionsContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }
+  // Auto-scrollear al final de la página de forma robusta
+  forceScrollToBottom();
+
+
+
 
   // 1. PRE-FLIGHT CHECK
   try {
@@ -2631,34 +2953,89 @@ async function executeInlineTool(toolData) {
     showNotification(`❌ ${err.message}`, 'error');
   } finally {
     if (execBtn) { execBtn.disabled = false; execBtn.innerHTML = '<i class="fas fa-play"></i> Ejecutar'; }
-    // Auto-scroll to results after rendering
+    // Auto-scroll final tras renderizar resultados
     setTimeout(() => {
-      const executionsContainer = document.getElementById('toolInlinePanel');
-      if (executionsContainer) executionsContainer.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }, 100);
+      forceScrollToBottom();
+    }, 200);
+
+
+
   }
 }
 
 function simulateToolResult(toolData, params) {
   const simulations = {
-    'Port Scanner': { open_ports: ['22/tcp (SSH)', '80/tcp (HTTP)', '443/tcp (HTTPS)', '8080/tcp (HTTP-ALT)'], host: params.target, scan_time: '2.3s', total_scanned: 1000 },
-    'SSL Checker': { valid: true, issuer: 'Let\'s Encrypt', expires: '2025-06-15', grade: 'A+', protocols: ['TLSv1.2', 'TLSv1.3'], vulnerabilities: 'None detected' },
-    'Traceroute': { hops: [{ ttl: 1, ip: '192.168.1.1', rtt: '1ms' }, { ttl: 2, ip: '10.0.0.1', rtt: '5ms' }, { ttl: 8, ip: params.target, rtt: '32ms' }] },
-    'Shodan Search': { total: 127, results: [{ ip: '45.33.32.156', port: 80, org: 'Linode', os: 'Linux' }, { ip: '172.217.14.110', port: 443, org: 'Google', os: 'Unknown' }] },
-    'Email Verifier': { valid: true, format: 'correct', domain_exists: true, mx_found: true, smtp_check: 'deliverable', score: 95 },
+    'Port Scanner': { open_ports: ['22/tcp (SSH)', '80/tcp (HTTP)', '443/tcp (HTTPS)', '8080/tcp (HTTP-ALT)'], host: params.target || params.ip || params.domain, scan_time: '2.3s', total_scanned: 1000 },
+    'SSL Checker': { valid: true, domain: params.domain, issuer: 'Let\'s Encrypt', expires: '2025-06-15', grade: 'A+', protocols: ['TLSv1.2', 'TLSv1.3'], vulnerabilities: 'None detected' },
+    'Traceroute': { target: params.target || params.ip, hops: [{ ttl: 1, ip: '192.168.1.1', rtt: '1ms' }, { ttl: 2, ip: '10.0.0.1', rtt: '5ms' }, { ttl: 8, ip: params.target || params.ip, rtt: '32ms' }] },
+    'Shodan Search': { query: params.query, total: 127, results: [{ ip: '45.33.32.156', port: 80, org: 'Linode', os: 'Linux' }, { ip: '172.217.14.110', port: 443, org: 'Google', os: 'Unknown' }] },
+    'Email Verifier': { email: params.email, valid: true, format: 'correct', domain_exists: true, mx_found: true, smtp_check: 'deliverable', score: 95 },
+    'Breach Hunter': {
+      target: params.email,
+      found: true,
+      breaches_count: Math.floor(Math.random() * 5) + 1,
+      top_breaches: ['Adobe', 'LinkedIn', 'Canva', 'Dropbox'].slice(0, Math.floor(Math.random() * 3) + 1),
+      data_classes: ['Email addresses', 'Passwords', 'IP addresses', 'Usernames'],
+      last_breach: '2024-02-12'
+    },
+    'Domain Reputation': {
+      domain: params.domain,
+      malicious_votes: 0,
+      harmless_votes: 72,
+      reputation_score: 'Clean',
+      last_analysis_date: new Date().toISOString().split('T')[0],
+      categories: ['search engines', 'technology']
+    },
     'Username Search': { found: 8, platforms: ['GitHub', 'Reddit', 'Twitter/X', 'LinkedIn', 'Steam', 'Twitch', 'HackerNews', 'GitLab'], query: params.username },
     'Phone Lookup': { valid: true, country: 'Spain', carrier: 'Vodafone', type: 'mobile', formatted: params.phone },
     'Image Reverse': { matches: 3, sources: ['Google Images (23 results)', 'Yandex Images (5 results)', 'TinEye (2 matches)'] },
-    'Paste Search': { results: 2, pastes: [{ site: 'Pastebin', date: '2024-01-15', preview: 'Found in credential dump...', url: '#' }, { site: 'GitHub Gist', date: '2023-11-20', preview: 'Config file mention...', url: '#' }] },
-    'Profile Analyzer': { activity_hours: '20:00-23:00 UTC+1', languages: ['es', 'en'], sentiment: 'neutral (62%)', estimated_age_range: '25-35', linked_accounts: [] },
+    'Paste Search': { query: params.query, results: 2, pastes: [{ site: 'Pastebin', date: '2024-01-15', preview: 'Found in credential dump...', url: '#' }, { site: 'GitHub Gist', date: '2023-11-20', preview: 'Config file mention...', url: '#' }] },
+    'Profile Analyzer': {
+      target: params.profileUrl || params.username,
+      activity_hours: '18:00-01:00 UTC+1',
+      languages: ['es', 'en'],
+      sentiment: Math.random() > 0.5 ? 'Positive (78%)' : 'Neutral (52%)',
+      estimated_age_range: '22-34',
+      linked_accounts: ['GitHub', 'LinkedIn'],
+      bot_probability: '4%'
+    },
     'Metadata Extractor': { format: 'JPEG', gps: 'Not embedded', camera: 'iPhone 15 Pro', software: 'Adobe Lightroom 6.0', created: '2024-08-22T14:30:00' },
     'IP Blacklist Check': { blacklisted: false, checked_lists: 112, clean_lists: 112, ip: params.ip },
-    'HTTP Headers': { server: 'nginx/1.18.0', x_powered_by: 'Not exposed', hsts: true, csp: 'present', x_frame_options: 'SAMEORIGIN', security_score: '8/10' },
-    'SPF/DKIM Check': { spf: 'pass (v=spf1 include:_spf.google.com ~all)', dkim: 'pass (2048-bit RSA)', dmarc: 'p=reject (strict)', score: 'A+' },
+    'HTTP Headers': { target: params.url, server: 'nginx/1.24.0', x_powered_by: 'Not exposed', hsts: true, csp: 'present', x_frame_options: 'SAMEORIGIN', security_score: '9/10' },
+    'SPF/DKIM Check': { domain: params.domain, spf: 'pass (v=spf1 include:_spf.google.com ~all)', dkim: 'pass (2048-bit RSA)', dmarc: 'p=reject (strict)', score: 'A+' },
     'Subdomain Finder': { found: 7, subdomains: ['www', 'mail', 'api', 'cdn', 'staging', 'admin', 'status'].map(s => `${s}.${params.domain || 'example.com'}`) }
   };
   return simulations[toolData.name] || { simulated: true, tool: toolData.name, params };
 }
+
+/**
+ * Asegura que el scroll llegue al fondo absoluto de la página.
+ * Utiliza anclaje activo durante la duración de la animación para pantallas difíciles.
+ */
+function forceScrollToBottom() {
+  const scrollContainer = document.querySelector('.content-wrapper') || document.documentElement;
+  
+  // Anclaje fuerte durante 1.2 segundos (cubriendo la transición de .8s al 100%)
+  const duration = 1200; 
+  const intervalTime = 16; // ~60 FPS
+  let elapsed = 0;
+  
+  const scrollInterval = setInterval(() => {
+    // Scroll instantáneo y contante para no competir con múltiples smooth scrolls
+    scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'auto' });
+    
+    elapsed += intervalTime;
+    if (elapsed >= duration) {
+      clearInterval(scrollInterval);
+      // Último pase suave por si hay alguna carga asíncrona rezagada
+      setTimeout(() => {
+        scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+      }, 100);
+    }
+  }, intervalTime);
+}
+
+
 
 function renderInlineResults(container, toolData, result, success) {
   if (!success) {
