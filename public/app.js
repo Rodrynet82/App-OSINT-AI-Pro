@@ -261,7 +261,24 @@ const toolsDatabase = {
             { name: 'query', type: 'text', label: 'Query Shodan', placeholder: 'org:"Google" port:8080', required: true }
           ]
         }
+      },
+      {
+        name: 'Geofence IP Tracker',
+        description: 'Localiza dispositivos y servidores activos en un área geográfica específica. Puedes buscar por nombre de ciudad/país o mediante coordenadas (latitud/longitud) para un rastreo de precisión quirúrgica.',
+        shortDesc: 'Búsqueda de IPs por localización (Shodan)',
+        icon: 'fas fa-crosshairs',
+        endpoint: 'geosearch',
+        form: {
+          title: 'Geofence IP Tracker',
+          fields: [
+            { name: 'location', type: 'text', label: 'Ciudad o País', placeholder: 'Madrid, España' },
+            { name: 'lat', type: 'text', label: 'Latitud', placeholder: '40.4168' },
+            { name: 'lon', type: 'text', label: 'Longitud', placeholder: '-3.7038' },
+            { name: 'radius', type: 'number', label: 'Radio (km)', placeholder: '10', value: 10 }
+          ]
+        }
       }
+
     ]
   },
   'Email & Domain Intelligence': {
@@ -2901,6 +2918,8 @@ async function executeInlineTool(toolData) {
         endpoint = `/api/portscan?target=${encodeURIComponent(params.target)}`; break;
       case 'Shodan Search':
         endpoint = `/api/portscan?target=${encodeURIComponent(params.query)}`; break;
+      case 'Geofence IP Tracker':
+        endpoint = `/api/geosearch?location=${encodeURIComponent(params.location || '')}&lat=${encodeURIComponent(params.lat || '')}&lon=${encodeURIComponent(params.lon || '')}&radius=${encodeURIComponent(params.radius || '5')}`; break;
       default:
         await new Promise(r => setTimeout(r, 1200 + Math.random() * 800));
         result = simulateToolResult(toolData, params);
@@ -3003,8 +3022,18 @@ function simulateToolResult(toolData, params) {
     'IP Blacklist Check': { blacklisted: false, checked_lists: 112, clean_lists: 112, ip: params.ip },
     'HTTP Headers': { target: params.url, server: 'nginx/1.24.0', x_powered_by: 'Not exposed', hsts: true, csp: 'present', x_frame_options: 'SAMEORIGIN', security_score: '9/10' },
     'SPF/DKIM Check': { domain: params.domain, spf: 'pass (v=spf1 include:_spf.google.com ~all)', dkim: 'pass (2048-bit RSA)', dmarc: 'p=reject (strict)', score: 'A+' },
-    'Subdomain Finder': { found: 7, subdomains: ['www', 'mail', 'api', 'cdn', 'staging', 'admin', 'status'].map(s => `${s}.${params.domain || 'example.com'}`) }
+    'Subdomain Finder': { found: 7, subdomains: ['www', 'mail', 'api', 'cdn', 'staging', 'admin', 'status'].map(s => `${s}.${params.domain || 'example.com'}`) },
+    'Geofence IP Tracker': { 
+      query: params.location || `${params.lat},${params.lon}`, 
+      total: 12, 
+      results: [
+        { ip: '213.4.150.' + Math.floor(Math.random()*254), port: 80, org: 'Telefónica de España', city: params.location || 'Madrid' },
+        { ip: '80.24.121.' + Math.floor(Math.random()*254), port: 443, org: 'Vodafone Spain', city: params.location || 'Madrid' },
+        { ip: '176.56.32.' + Math.floor(Math.random()*254), port: 22, org: 'Orange España', city: params.location || 'Madrid' }
+      ] 
+    }
   };
+
   return simulations[toolData.name] || { simulated: true, tool: toolData.name, params };
 }
 
@@ -3045,6 +3074,41 @@ function renderInlineResults(container, toolData, result, success) {
         <div>
           <h5>Error de Ejecución</h5>
           <p>${result.error || 'Error desconocido'}</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (toolData.name === 'Geofence IP Tracker' && result.results) {
+    const cards = result.results.map(item => `
+      <div class="osint-data-card">
+        <div class="osint-card-header">
+          <span class="osint-ip"><i class="fas fa-network-wired"></i> ${item.ip}</span>
+          <span class="osint-port ${item.port === 80 || item.port === 443 ? 'port-web' : 'port-other'}">Port: ${item.port}</span>
+        </div>
+        <div class="osint-card-body">
+          <div class="osint-info-row"><strong>ORG:</strong> <span>${item.org}</span></div>
+          <div class="osint-info-row"><strong>City:</strong> <span>${item.city}, ${item.country}</span></div>
+          ${item.os && item.os !== 'N/A' ? `<div class="osint-info-row"><strong>OS:</strong> <span>${item.os}</span></div>` : ''}
+          ${item.hostnames && item.hostnames.length > 0 ? `<div class="osint-info-row"><strong>Hosts:</strong> <span>${item.hostnames.join(', ')}</span></div>` : ''}
+        </div>
+        <div class="osint-card-footer">
+          <button class="osint-map-btn" onclick="focusOnMap('${item.ip}')"><i class="fas fa-map-marker-alt"></i> Ver en Mapa</button>
+          ${item.vulnerability ? '<span class="osint-badge-vuln"><i class="fas fa-bug"></i> Vuln</span>' : ''}
+        </div>
+      </div>
+    `).join('');
+
+    container.innerHTML = `
+      <div class="inline-result-success">
+        <div class="inline-result-header">
+          <i class="fas fa-crosshairs"></i>
+          <span>${toolData.name} — ${result.total} dispositivos encontrados</span>
+          <span class="inline-result-ts">${new Date().toLocaleTimeString()}</span>
+        </div>
+        <div class="inline-result-body">
+          <p class="geo-query-info">Mostrando resultados para: <code>${result.query}</code></p>
+          <div class="osint-results-grid">${cards}</div>
         </div>
       </div>`;
     return;
@@ -3723,4 +3787,32 @@ function applyTranslations(lang) {
 // Traducciones movidas a la cabecera
 
 console.log("🚀 OSINT AI Pro: Despegue completado. Sistema al 100%.");
+
+/**
+ * Navega desde los resultados de una herramienta directamente al Mapa de la IA Sentry.
+ * Rellena el input de inteligencia y dispara el análisis para la IP seleccionada.
+ */
+function focusOnMap(ip) {
+  // 1. Cerrar el panel de herramientas si está abierto
+  closeInlineToolPanel();
+  
+  // 2. Cambiar a la pestaña de "Investigación IA" (Dashboard)
+  const dashboardTab = document.querySelector('[data-section="dashboard"]');
+  if (dashboardTab) dashboardTab.click();
+  
+  // 3. Rellenar el input de búsqueda de inteligencia
+  const intelInput = document.getElementById('intelInput');
+  if (intelInput) {
+    intelInput.value = ip;
+    
+    // 4. Disparar el análisis tras un breve delay para permitir el cambio de sección
+    setTimeout(() => {
+      const intelBtn = document.getElementById('intelBtn');
+      if (intelBtn) intelBtn.click();
+      
+      showNotification(`📍 Localizando ${ip} en el Mapa Global...`, 'info');
+    }, 400);
+  }
+}
+
 
