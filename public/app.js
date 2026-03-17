@@ -2935,24 +2935,23 @@ async function executeInlineTool(toolData) {
         const contentType = resp.headers.get('content-type') || '';
 
         if (!resp.ok) {
-          if (resp.status >= 500 || resp.status === 401 || resp.status === 400 || resp.status === 403) {
-            if (contentType.includes('application/json')) {
-              const errData = await resp.json();
-              throw new Error(errData.error || errData.details || `Error API (${resp.status})`);
-            }
+          if (contentType.includes('application/json')) {
+            const errData = await resp.json();
+            throw new Error(errData.error || errData.details || `Error API (${resp.status})`);
+          }
+          // Fallback a simulación solo para 404 o si no es JSON
+          if (resp.status === 404) {
+            console.warn(`[OSINT] API ${endpoint} no encontrada, usando simulación.`);
+            result = simulateToolResult(toolData, params);
+            result._note = '⚠️ Modo Simulación (Endpoint no disponible)';
+          } else {
             throw new Error(`Error en el servidor o configuración (HTTP ${resp.status})`);
           }
-          // Para 404 u otros errores, usamos simulación
-          console.info(`[OSINT] API endpoint ${endpoint} return ${resp.status}, using simulation for ${toolData.name}`);
-          await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
-          result = simulateToolResult(toolData, params);
-          result._note = '⚡ Modo simulación (Ruta de API no diponible)';
         } else if (!contentType.includes('application/json')) {
-          // API not returning JSON — use rich simulation
-          console.info(`[OSINT] API endpoint ${endpoint} returned non-JSON, using simulation for ${toolData.name}`);
-          await new Promise(r => setTimeout(r, 800 + Math.random() * 600));
+          // API responde OK pero no es JSON — simulación rica
+          console.info(`[OSINT] API ${endpoint} no retornó JSON, usando simulación.`);
           result = simulateToolResult(toolData, params);
-          result._note = '⚡ Modo simulación (API mal configurada)';
+          result._note = '⚡ Modo Simulación (API mal configurada)';
         } else {
           result = await resp.json();
         }

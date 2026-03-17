@@ -56,8 +56,14 @@ export default async function handler(req, res) {
 
   // ACTION: GEOFENCE SEARCH (shodan)
   if (action === 'geosearch') {
-    const SHODAN_API_KEY = process.env.SHODAN_API_KEY;
-    if (!SHODAN_API_KEY) return res.status(500).json({ error: 'Shodan API Key missing' });
+    const SHODAN_API_KEY = process.env.SHODAN_API_KEY || process.env.SHODAN_KEY;
+    if (!SHODAN_API_KEY || SHODAN_API_KEY === 'demo') {
+      return res.status(500).json({ 
+        success: false,
+        error: 'Shodan API Key no configurada o es "demo".', 
+        details: 'Para usar esta herramienta en local, añade SHODAN_API_KEY=tu_clave en el archivo .env. Para producción, añádela en Vercel -> Settings -> Environment Variables.'
+      });
+    }
 
     let query = '';
     if (lat && lon) query = `geo:${lat},${lon},${radius}`;
