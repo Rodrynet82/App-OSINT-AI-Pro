@@ -74,7 +74,8 @@ Optimización rendimiento globo.gl.
 Traducciones i18n.
 
 Desarrollado por Rodrigo Cabada
-LinkedIn • GitHub
+
+LinkedIn - https://www.linkedin.com/in/rodrigo-cabada/ • GitHub - https://github.com/Rodrynet82
 
 
 
